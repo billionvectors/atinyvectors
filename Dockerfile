@@ -13,7 +13,13 @@ RUN apt-get update && apt-get install -y \
     curl \
     xz-utils \
     libsqlite3-dev \
-    clang
+    clang \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    pkg-config \
+    libzstd-dev \
+    libssl-dev
 
 # Set default build type to Debug if not specified
 ARG BUILD_TYPE=Debug

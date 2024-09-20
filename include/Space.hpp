@@ -30,20 +30,19 @@ private:
     static std::mutex instanceMutex;
 
     SpaceManager();
-
-    void createTable();
-
 public:
     SpaceManager(const SpaceManager&) = delete;
     SpaceManager& operator=(const SpaceManager&) = delete;
 
     static SpaceManager& getInstance();
+    
+    void createTable();
 
     int addSpace(Space& space);
     std::vector<Space> getAllSpaces();
     Space getSpaceById(int id);
     Space getSpaceByName(const std::string& name);
-    void updateSpace(const Space& space);
+    void updateSpace(Space& space);
     void deleteSpace(int id);
 };
 

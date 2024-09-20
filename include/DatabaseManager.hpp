@@ -23,7 +23,7 @@ public:
     DatabaseManager(const DatabaseManager&) = delete;
     DatabaseManager& operator=(const DatabaseManager&) = delete;
 
-    static DatabaseManager& getInstance(const std::string& dbFileName = atinyvectors::Config::getInstance().getDefaultDbName());
+    static DatabaseManager& getInstance(const std::string& dbFileName = atinyvectors::Config::getInstance().getDbName());
 
     SQLite::Database& getDatabase();
 };

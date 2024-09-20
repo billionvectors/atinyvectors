@@ -2,22 +2,22 @@
 #include "DatabaseManager.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
 #include "VectorMetadata.hpp"
 #include "Version.hpp"
 #include "Space.hpp"
 #include "Config.hpp"
 #include "gtest/gtest.h"
+#include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
 using namespace atinyvectors::algo;
+using namespace nlohmann;
 
 // Test Fixture for HnswIndexManager
 class HnswIndexManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         SpaceManager::getInstance();
-        VectorIndexOptimizerManager::getInstance();
         VectorIndexManager::getInstance();
         VersionManager::getInstance();
         VectorMetadataManager::getInstance();
@@ -25,7 +25,6 @@ protected:
 
         auto& db = DatabaseManager::getInstance().getDatabase();
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
@@ -40,7 +39,9 @@ protected:
         createMockDatas();
 
         // Create the index manager with a specific MetricType (e.g., L2)
-        indexManager = std::make_unique<HnswIndexManager>(indexFileName, dim, maxElements, MetricType::L2);
+        HnswConfig config = HnswConfig(16, 100);
+
+        indexManager = std::make_unique<HnswIndexManager>(indexFileName, vectorIndexId, dim, maxElements, MetricType::L2, config);
     }
 
     void TearDown() override {
@@ -48,7 +49,6 @@ protected:
         
         auto& db = DatabaseManager::getInstance().getDatabase();
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
@@ -61,9 +61,12 @@ protected:
 
         db.exec("DELETE FROM Vector;");
         db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
+        db.exec("DELETE FROM VectorIndex;");
 
-        db.exec("INSERT INTO VectorIndexOptimizer (vectorIndexId, hnswConfigJson, quantizationConfigJson) VALUES (1, '{\"M\": 16, \"EfConstruct\": 200}', '{}')");
+        // Create mock data in VectorIndex table with HNSW configuration
+        db.exec("INSERT INTO VectorIndex (id, versionId, vectorValueType, name, metricType, dimension, hnswConfigJson, quantizationConfigJson, create_date_utc, updated_time_utc, is_default) "
+                "VALUES (1, 1, 0, 'Test Index', 0, 16, '{\"M\": 16, \"EfConstruct\": 200}', '{}', 1627906032, 1627906032, 1)");
+        vectorIndexId = static_cast<int>(db.getLastInsertRowid());
 
         SQLite::Statement insertVector(db, "INSERT INTO Vector (versionId, unique_id, type, deleted) VALUES (?, ?, ?, ?)");
         SQLite::Statement insertVectorValue(db, "INSERT INTO VectorValue (vectorId, vectorIndexId, type, data) VALUES (?, ?, ?, ?)");
@@ -84,7 +87,7 @@ protected:
 
             // Insert corresponding data into VectorValue
             insertVectorValue.bind(1, vectorId);  // vectorId
-            insertVectorValue.bind(2, 1);  // vectorIndexId
+            insertVectorValue.bind(2, vectorIndexId);  // vectorIndexId
             insertVectorValue.bind(3, static_cast<int>(VectorValueType::Dense));  // type
             insertVectorValue.bind(4, blob);  // data
             insertVectorValue.exec();
@@ -93,13 +96,14 @@ protected:
     }
 
     std::string indexFileName;
+    int vectorIndexId;
     int dim;
     int maxElements;
     std::unique_ptr<HnswIndexManager> indexManager;
 };
 
 TEST_F(HnswIndexManagerTest, TestDumpVectorsToIndex) {
-    indexManager->dumpVectorsToIndex(1);
+    indexManager->restoreVectorsToIndex();
 
     // Verify that vectors were added to the index
     ASSERT_NO_THROW({
@@ -108,7 +112,7 @@ TEST_F(HnswIndexManagerTest, TestDumpVectorsToIndex) {
 }
 
 TEST_F(HnswIndexManagerTest, TestSaveAndLoadIndex) {
-    indexManager->dumpVectorsToIndex(1);
+    indexManager->restoreVectorsToIndex();
     indexManager->saveIndex();
 
     // Verify saving does not throw exceptions
@@ -125,7 +129,7 @@ TEST_F(HnswIndexManagerTest, TestSaveAndLoadIndex) {
 }
 
 TEST_F(HnswIndexManagerTest, TestSearchFunctionality) {
-    indexManager->dumpVectorsToIndex(1);
+    indexManager->restoreVectorsToIndex();
 
     auto results = indexManager->search(std::vector<float>(16, 1.0f), 3);
     ASSERT_EQ(results.size(), 3);

@@ -14,7 +14,7 @@ namespace dto {
 
 class VectorDTOManager {
 public:
-    void upsert(const std::string& spaceName, int versionId, const std::string& jsonStr); 
+    void upsert(const std::string& spaceName, int versionUniqueId, const std::string& jsonStr); 
     json getVectorsByVersionId(int versionId);
 
 private:

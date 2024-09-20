@@ -2,49 +2,76 @@
 
 #include <gtest/gtest.h>
 #include "dto/VectorDTO.hpp"
+#include "algo/HnswIndexLRUCache.hpp"
+#include "utils/Utils.hpp"
+#include "Snapshot.hpp"
+#include "Space.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
-#include "VectorMetadata.hpp"
 #include "Version.hpp"
-#include "Space.hpp"
+#include "VectorMetadata.hpp"
 #include "DatabaseManager.hpp"
+#include "IdCache.hpp"
+#include "RbacToken.hpp"
 #include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
 using namespace atinyvectors::dto;
+using namespace atinyvectors::algo;
+using namespace atinyvectors::utils;
 using namespace nlohmann;
 
 // Test Fixture class
 class VectorDTOManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        SpaceManager::getInstance();
-        VectorIndexOptimizerManager::getInstance();
-        VectorIndexManager::getInstance();
-        VersionManager::getInstance();
-        VectorMetadataManager::getInstance();
-        VectorManager::getInstance();
+        IdCache::getInstance().clean();
+
+        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
+        snapshotManager.createTable();
+
+        SpaceManager& spaceManager = SpaceManager::getInstance();
+        spaceManager.createTable();
+        
+        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
+        vectorIndexManager.createTable();
+
+        VersionManager& versionManager = VersionManager::getInstance();
+        versionManager.createTable();
+
+        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
+        metadataManager.createTable();
+
+        VectorManager& vectorManager = VectorManager::getInstance();
+        vectorManager.createTable();
+
+        RbacTokenManager& rbacTokenManager = RbacTokenManager::getInstance();
+        rbacTokenManager.createTable();
 
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
         db.exec("DELETE FROM Vector;");
         db.exec("DELETE FROM VectorValue;");
+        db.exec("DELETE FROM RbacToken;");
+
+        // clean data
+        HnswIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
         db.exec("DELETE FROM Vector;");
         db.exec("DELETE FROM VectorValue;");
+        db.exec("DELETE FROM RbacToken;");
     }
 };
 
@@ -60,22 +87,16 @@ TEST_F(VectorDTOManagerTest, UpsertVectorsWithJson) {
     auto vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versionId);
     int defaultIndexId = 0;
     if (vectorIndices.empty()) {
-        VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", 0, 0, true);
+        // Use updated constructor to create VectorIndex
+        HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+        QuantizationConfig quantizationConfig;  // Default empty quantization config
+        
+        VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", MetricType::L2, 128,
+                                 hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
         defaultIndexId = VectorIndexManager::getInstance().addVectorIndex(defaultIndex);
     } else {
         defaultIndexId = vectorIndices[0].id;
     }
-
-    // Add a VectorIndexOptimizer entry for the defaultIndexId
-    SQLite::Statement optimizerQuery(DatabaseManager::getInstance().getDatabase(),
-                                     "INSERT INTO VectorIndexOptimizer (vectorIndexId, metricType, dimension, hnswConfigJson, quantizationConfigJson) "
-                                     "VALUES (?, ?, ?, ?, ?)");
-    optimizerQuery.bind(1, defaultIndexId);
-    optimizerQuery.bind(2, static_cast<int>(MetricType::L2));  // Use L2 metric type
-    optimizerQuery.bind(3, 128);  // Dimension size of 128
-    optimizerQuery.bind(4, R"({"M": 16, "EfConstruct": 200})");  // Example HnswConfig
-    optimizerQuery.bind(5, "{}");  // Empty quantization config
-    optimizerQuery.exec();
 
     // Multiple operations including vector insertion and upsert
     std::string updateJson = R"({

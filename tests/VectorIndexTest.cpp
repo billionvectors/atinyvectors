@@ -39,9 +39,14 @@ TEST_F(VectorIndexManagerTest, AddVectorIndex) {
     ASSERT_FALSE(versions.empty());
 
     int versionId = versions[0].id;
-    
+
+    // Define HNSW and quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
     // Add a new vector index
-    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", 1627906032, 1627906032);
+    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", MetricType::L2, 128,
+                            hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
     int vectorIndexId = vectorIndexManager.addVectorIndex(vectorIndex);
 
     EXPECT_EQ(vectorIndex.id, vectorIndexId);
@@ -64,7 +69,13 @@ TEST_F(VectorIndexManagerTest, GetVectorIndexById) {
     ASSERT_FALSE(versions.empty());
 
     int versionId = versions[0].id;
-    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", 1627906032, 1627906032);
+
+    // Define HNSW and quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
+    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", MetricType::L2, 128,
+                            hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
     vectorIndexManager.addVectorIndex(vectorIndex);
 
     auto vectorIndices = vectorIndexManager.getAllVectorIndices();
@@ -90,9 +101,15 @@ TEST_F(VectorIndexManagerTest, GetVectorIndicesByVersionId) {
 
     int versionId = versions[0].id;
 
+    // Define HNSW and quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
     // Adding multiple vector indices to the same version
-    VectorIndex vectorIndex1(0, versionId, VectorValueType::Dense, "Vector Index 1", 1627906032, 1627906032);
-    VectorIndex vectorIndex2(0, versionId, VectorValueType::Sparse, "Vector Index 2", 1627906033, 1627906033);
+    VectorIndex vectorIndex1(0, versionId, VectorValueType::Dense, "Vector Index 1", MetricType::L2, 128,
+                             hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
+    VectorIndex vectorIndex2(0, versionId, VectorValueType::Sparse, "Vector Index 2", MetricType::Cosine, 256,
+                             hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906033, 1627906033, true);
     vectorIndexManager.addVectorIndex(vectorIndex1);
     vectorIndexManager.addVectorIndex(vectorIndex2);
 
@@ -114,7 +131,13 @@ TEST_F(VectorIndexManagerTest, UpdateVectorIndex) {
     ASSERT_FALSE(versions.empty());
 
     int versionId = versions[0].id;
-    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", 1627906032, 1627906032);
+
+    // Define HNSW and quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
+    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", MetricType::L2, 128,
+                            hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
     vectorIndexManager.addVectorIndex(vectorIndex);
 
     auto vectorIndices = vectorIndexManager.getAllVectorIndices();
@@ -147,9 +170,15 @@ TEST_F(VectorIndexManagerTest, DeleteVectorIndex) {
 
     int versionId = versions[0].id;
 
+    // Define HNSW and quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
     // Add two vector indices
-    VectorIndex vectorIndex1(0, versionId, VectorValueType::Dense, "Vector Index 1", 1627906032, 1627906032);
-    VectorIndex vectorIndex2(0, versionId, VectorValueType::Sparse, "Vector Index 2", 1627906033, 1627906033);
+    VectorIndex vectorIndex1(0, versionId, VectorValueType::Dense, "Vector Index 1", MetricType::L2, 128,
+                             hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
+    VectorIndex vectorIndex2(0, versionId, VectorValueType::Sparse, "Vector Index 2", MetricType::Cosine, 256,
+                             hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906033, 1627906033, true);
     vectorIndexManager.addVectorIndex(vectorIndex1);
     vectorIndexManager.addVectorIndex(vectorIndex2);
 
@@ -168,4 +197,3 @@ TEST_F(VectorIndexManagerTest, HandleNonExistentVectorIndex) {
     // Trying to get a vector index with an ID that does not exist
     EXPECT_THROW(manager.getVectorIndexById(999), std::runtime_error);
 }
-

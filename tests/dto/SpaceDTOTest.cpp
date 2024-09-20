@@ -1,50 +1,69 @@
 #include <gtest/gtest.h>
+#include "dto/SpaceDTO.hpp"
+#include "algo/HnswIndexLRUCache.hpp"
+#include "utils/Utils.hpp"
+#include "Snapshot.hpp"
 #include "Space.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
 #include "Version.hpp"
 #include "VectorMetadata.hpp"
 #include "DatabaseManager.hpp"
-#include "dto/SpaceDTO.hpp"
+#include "IdCache.hpp"
+#include "RbacToken.hpp"
 #include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
 using namespace atinyvectors::dto;
+using namespace atinyvectors::algo;
+using namespace atinyvectors::utils;
 using namespace nlohmann;
 
 // Test Fixture class
 class SpaceDTOManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        IdCache::getInstance().clean();
+
+        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
+        snapshotManager.createTable();
+
         SpaceManager& spaceManager = SpaceManager::getInstance();
-        VectorIndexOptimizerManager& optimizerManager = VectorIndexOptimizerManager::getInstance();
+        spaceManager.createTable();
+        
         VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
+        vectorIndexManager.createTable();
+
         VersionManager& versionManager = VersionManager::getInstance();
+        versionManager.createTable();
+
         VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
+        metadataManager.createTable();
+
         VectorManager& vectorManager = VectorManager::getInstance();
+        vectorManager.createTable();
+
+        RbacTokenManager& rbacTokenManager = RbacTokenManager::getInstance();
+        rbacTokenManager.createTable();
 
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
         db.exec("DELETE FROM Vector;");
         db.exec("DELETE FROM VectorValue;");
+        db.exec("DELETE FROM RbacToken;");
+
+        // clean data
+        HnswIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
-        SpaceManager& spaceManager = SpaceManager::getInstance();
-        VectorIndexOptimizerManager& optimizerManager = VectorIndexOptimizerManager::getInstance();
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        VersionManager& versionManager = VersionManager::getInstance();
-        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
-        VectorManager& vectorManager = VectorManager::getInstance();
-
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
@@ -134,28 +153,29 @@ TEST_F(SpaceDTOManagerTest, CreateSpaceWithNormalizedJson) {
     for (const auto& vectorIndex : vectorIndexes) {
         if (vectorIndex.name == "Default Dense Index") {
             // Dense Vector와 Optimizer 확인
-            auto denseOptimizers = VectorIndexOptimizerManager::getInstance().getOptimizerByIndexId(vectorIndex.id);
-            EXPECT_EQ(denseOptimizers[0].getHnswConfig().M, 32);
-            EXPECT_EQ(denseOptimizers[0].getHnswConfig().EfConstruct, 123);
-            EXPECT_EQ(denseOptimizers[0].getQuantizationConfig().Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(denseOptimizers[0].getQuantizationConfig().Scalar.Quantile, 0.8f);
+            auto hnswConfig = vectorIndex.getHnswConfig();
+            auto quantizationConfig = vectorIndex.getQuantizationConfig();
+            EXPECT_EQ(hnswConfig.M, 32);
+            EXPECT_EQ(hnswConfig.EfConstruct, 123);
+            EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
+            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.8f);
         } else if (vectorIndex.name == "Default Sparse Index") {
             // Sparse Vector와 Optimizer 확인
-            auto sparseOptimizers = VectorIndexOptimizerManager::getInstance().getOptimizerByIndexId(vectorIndex.id);
-            ASSERT_EQ(sparseOptimizers.size(), 1);
-            EXPECT_EQ(sparseOptimizers[0].metricType, MetricType::Cosine);
+            EXPECT_EQ(vectorIndex.metricType, MetricType::Cosine);
         } else if (vectorIndex.name == "index1") {
             // 추가된 Index 1 확인
-            auto index1Optimizers = VectorIndexOptimizerManager::getInstance().getOptimizerByIndexId(vectorIndex.id);
-            EXPECT_EQ(index1Optimizers[0].getHnswConfig().M, 20);
-            EXPECT_EQ(index1Optimizers[0].getQuantizationConfig().Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(index1Optimizers[0].getQuantizationConfig().Scalar.Quantile, 0.6f);
+            auto hnswConfig = vectorIndex.getHnswConfig();
+            auto quantizationConfig = vectorIndex.getQuantizationConfig();
+            EXPECT_EQ(hnswConfig.M, 20);
+            EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
+            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.6f);
         } else if (vectorIndex.name == "index2") {
             // 추가된 Index 2 확인
-            auto index2Optimizers = VectorIndexOptimizerManager::getInstance().getOptimizerByIndexId(vectorIndex.id);
-            EXPECT_EQ(index2Optimizers[0].getHnswConfig().M, 20);
-            EXPECT_EQ(index2Optimizers[0].getQuantizationConfig().Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(index2Optimizers[0].getQuantizationConfig().Scalar.Quantile, 0.6f);
+            auto hnswConfig = vectorIndex.getHnswConfig();
+            auto quantizationConfig = vectorIndex.getQuantizationConfig();
+            EXPECT_EQ(hnswConfig.M, 20);
+            EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
+            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.6f);
         }
     }
 }
@@ -224,18 +244,13 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceIdTest) {
 
         if (indexName == "Default Dense Index") {
             EXPECT_EQ(vectorIndex["vectorValueType"], static_cast<int>(VectorValueType::Dense));
-            ASSERT_TRUE(vectorIndex.contains("optimizer"));
-            const auto& optimizer = vectorIndex["optimizer"];
-            EXPECT_EQ(optimizer["metricType"], static_cast<int>(MetricType::Cosine));
-            EXPECT_EQ(optimizer["dimension"], 1536);
-            
-            EXPECT_EQ(optimizer["hnswConfig"]["M"], 32);
-            EXPECT_EQ(optimizer["hnswConfig"]["EfConstruct"], 123);
+            EXPECT_EQ(vectorIndex["metricType"], static_cast<int>(MetricType::Cosine));
+            EXPECT_EQ(vectorIndex["dimension"], 1536);
+            EXPECT_EQ(vectorIndex["hnswConfig"]["M"], 32);
+            EXPECT_EQ(vectorIndex["hnswConfig"]["EfConstruct"], 123);
         } else if (indexName == "Default Sparse Index") {
             EXPECT_EQ(vectorIndex["vectorValueType"], static_cast<int>(VectorValueType::Sparse));
-            ASSERT_TRUE(vectorIndex.contains("optimizer"));
-            const auto& optimizer = vectorIndex["optimizer"];
-            EXPECT_EQ(optimizer["metricType"], static_cast<int>(MetricType::Cosine));
+            EXPECT_EQ(vectorIndex["metricType"], static_cast<int>(MetricType::Cosine));
         } else {
             FAIL() << "Unexpected vector index name: " << indexName;
         }

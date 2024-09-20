@@ -1,5 +1,8 @@
 #include "VectorIndex.hpp"
 #include "DatabaseManager.hpp"
+#include "utils/Utils.hpp"
+
+using namespace atinyvectors::utils;
 
 namespace atinyvectors {
 
@@ -8,20 +11,28 @@ void bindVectorIndexParameters(SQLite::Statement& query, const VectorIndex& vect
     query.bind(1, vectorIndex.versionId);
     query.bind(2, static_cast<int>(vectorIndex.vectorValueType));
     query.bind(3, vectorIndex.name);
-    query.bind(4, vectorIndex.create_date_utc);
-    query.bind(5, vectorIndex.updated_time_utc);
-    query.bind(6, vectorIndex.is_default ? 1 : 0);
+    query.bind(4, static_cast<int>(vectorIndex.metricType));
+    query.bind(5, vectorIndex.dimension);
+    query.bind(6, vectorIndex.hnswConfigJson);
+    query.bind(7, vectorIndex.quantizationConfigJson);
+    query.bind(8, vectorIndex.create_date_utc);
+    query.bind(9, vectorIndex.updated_time_utc);
+    query.bind(10, vectorIndex.is_default ? 1 : 0);
 }
 
 VectorIndex createVectorIndexFromQuery(SQLite::Statement& query) {
     return VectorIndex(
-        query.getColumn(0).getInt(),         // id
-        query.getColumn(1).getInt(),         // versionId
-        static_cast<VectorValueType>(query.getColumn(2).getInt()),  // vectorValueType
-        query.getColumn(3).getString(),      // name
-        query.getColumn(4).getInt64(),       // create_date_utc
-        query.getColumn(5).getInt64(),       // updated_time_utc
-        query.getColumn(6).getInt() == 1     // is_default
+        query.getColumn(0).getInt(),        // id
+        query.getColumn(1).getInt(),        // versionId
+        static_cast<VectorValueType>(query.getColumn(2).getInt()), // vectorValueType
+        query.getColumn(3).getString(),     // name
+        static_cast<MetricType>(query.getColumn(4).getInt()), // metricType
+        query.getColumn(5).getInt(),        // dimension
+        query.getColumn(6).getString(),    // hnswConfigJson
+        query.getColumn(7).getString(),     // quantizationConfigJson
+        query.getColumn(8).getInt64(),      // create_date_utc
+        query.getColumn(9).getInt64(),      // updated_time_utc
+        query.getColumn(10).getInt() == 1   // is_default
     );
 }
 
@@ -48,10 +59,17 @@ void VectorIndexManager::createTable() {
             "versionId INTEGER NOT NULL, "
             "vectorValueType INTEGER, "
             "name TEXT NOT NULL, "
+            "metricType INTEGER, "
+            "dimension INTEGER, "
+            "hnswConfigJson TEXT, "
+            "quantizationConfigJson TEXT, "
             "create_date_utc INTEGER, "
             "updated_time_utc INTEGER, "
             "is_default BOOLEAN DEFAULT 0, "
             "FOREIGN KEY(versionId) REFERENCES Version(id));");
+
+    // Create an index on the unique_id column in Version table
+    db.exec("CREATE INDEX IF NOT EXISTS idx_vectorindex_version_id ON VectorIndex(versionId);");
 }
 
 VectorIndexManager& VectorIndexManager::getInstance() {
@@ -73,7 +91,10 @@ int VectorIndexManager::addVectorIndex(VectorIndex& vectorIndex) {
         updateQuery.exec();
     }
 
-    SQLite::Statement insertQuery(db, "INSERT INTO VectorIndex (versionId, vectorValueType, name, create_date_utc, updated_time_utc, is_default) VALUES (?, ?, ?, ?, ?, ?)");
+    vectorIndex.create_date_utc = getCurrentTimeUTC();
+    vectorIndex.updated_time_utc = getCurrentTimeUTC();
+
+    SQLite::Statement insertQuery(db, "INSERT INTO VectorIndex (versionId, vectorValueType, name, metricType, dimension, hnswConfigJson, quantizationConfigJson, create_date_utc, updated_time_utc, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     bindVectorIndexParameters(insertQuery, vectorIndex);
     insertQuery.exec();
 
@@ -87,13 +108,13 @@ int VectorIndexManager::addVectorIndex(VectorIndex& vectorIndex) {
 
 std::vector<VectorIndex> VectorIndexManager::getAllVectorIndices() {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, versionId, vectorValueType, name, create_date_utc, updated_time_utc, is_default FROM VectorIndex");
+    SQLite::Statement query(db, "SELECT id, versionId, vectorValueType, name, metricType, dimension, hnswConfigJson, quantizationConfigJson, create_date_utc, updated_time_utc, is_default FROM VectorIndex");
     return executeSelectQuery(query);
 }
 
 VectorIndex VectorIndexManager::getVectorIndexById(int id) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, versionId, vectorValueType, name, create_date_utc, updated_time_utc, is_default FROM VectorIndex WHERE id = ?");
+    SQLite::Statement query(db, "SELECT id, versionId, vectorValueType, name, metricType, dimension, hnswConfigJson, quantizationConfigJson, create_date_utc, updated_time_utc, is_default FROM VectorIndex WHERE id = ?");
     query.bind(1, id);
 
     if (query.executeStep()) {
@@ -105,15 +126,17 @@ VectorIndex VectorIndexManager::getVectorIndexById(int id) {
 
 std::vector<VectorIndex> VectorIndexManager::getVectorIndicesByVersionId(int versionId) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, versionId, vectorValueType, name, create_date_utc, updated_time_utc, is_default FROM VectorIndex WHERE versionId = ?");
+    SQLite::Statement query(db, "SELECT id, versionId, vectorValueType, name, metricType, dimension, hnswConfigJson, quantizationConfigJson, create_date_utc, updated_time_utc, is_default FROM VectorIndex WHERE versionId = ?");
     query.bind(1, versionId);
 
     return executeSelectQuery(query);
 }
 
-void VectorIndexManager::updateVectorIndex(const VectorIndex& vectorIndex) {
+void VectorIndexManager::updateVectorIndex(VectorIndex& vectorIndex) {
     auto& db = DatabaseManager::getInstance().getDatabase();
     
+    vectorIndex.updated_time_utc = getCurrentTimeUTC();
+
     SQLite::Transaction transaction(db);
     
     if (vectorIndex.is_default) {
@@ -123,14 +146,9 @@ void VectorIndexManager::updateVectorIndex(const VectorIndex& vectorIndex) {
         updateQuery.exec();
     }
 
-    SQLite::Statement query(db, "UPDATE VectorIndex SET versionId = ?, vectorValueType = ?, name = ?, create_date_utc = ?, updated_time_utc = ?, is_default = ? WHERE id = ?");
-    query.bind(1, vectorIndex.versionId);
-    query.bind(2, static_cast<int>(vectorIndex.vectorValueType));
-    query.bind(3, vectorIndex.name);
-    query.bind(4, vectorIndex.create_date_utc);
-    query.bind(5, vectorIndex.updated_time_utc);
-    query.bind(6, vectorIndex.is_default ? 1 : 0);
-    query.bind(7, vectorIndex.id);
+    SQLite::Statement query(db, "UPDATE VectorIndex SET versionId = ?, vectorValueType = ?, name = ?, metricType = ?, dimension = ?, hnswConfigJson = ?, quantizationConfigJson = ?, create_date_utc = ?, updated_time_utc = ?, is_default = ? WHERE id = ?");
+    bindVectorIndexParameters(query, vectorIndex);
+    query.bind(11, vectorIndex.id);
     query.exec();
     
     transaction.commit();

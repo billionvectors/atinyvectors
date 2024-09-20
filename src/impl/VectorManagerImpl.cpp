@@ -1,7 +1,6 @@
 // VectorManagerImpl.cpp
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
 #include "DatabaseManager.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include <SQLiteCpp/SQLiteCpp.h>
@@ -36,6 +35,9 @@ void VectorManager::createTable() {
             "data BLOB,"
             "FOREIGN KEY(vectorId) REFERENCES Vector(id),"
             "FOREIGN KEY(vectorIndexId) REFERENCES VectorIndex(id));");
+
+    // Create an index on the unique_id column in Vector table
+    db.exec("CREATE INDEX IF NOT EXISTS idx_vector_unique_id ON Vector(unique_id);");
 }
 
 VectorManager& VectorManager::getInstance() {
@@ -47,12 +49,8 @@ VectorManager& VectorManager::getInstance() {
 }
 
 int VectorManager::addVector(Vector& vector) {
-    // create table if necessary
-    VectorIndexManager::getInstance();
-    VectorIndexOptimizerManager::getInstance();
-
     auto& db = DatabaseManager::getInstance().getDatabase();
-    spdlog::info("Starting transaction for adding/updating vector with UniqueID: {}, VersionID: {}", vector.unique_id, vector.versionId);
+    spdlog::debug("Starting transaction for adding/updating vector with UniqueID: {}, VersionID: {}", vector.unique_id, vector.versionId);
     SQLite::Transaction transaction(db);
 
     try {
@@ -64,9 +62,8 @@ int VectorManager::addVector(Vector& vector) {
 
             if (checkQuery.executeStep()) {
                 vector.id = checkQuery.getColumn(0).getInt64();
-                spdlog::info("Vector with UniqueID {} exists. Updating vector ID: {}", vector.unique_id, vector.id);
+                spdlog::debug("Vector with UniqueID {} exists. Updating vector ID: {}", vector.unique_id, vector.id);
 
-                spdlog::debug("Updating Vector table for vector ID: {}", vector.id);
                 SQLite::Statement updateQuery(db, "UPDATE Vector SET versionId = ?, unique_id = ?, type = ?, deleted = ? WHERE id = ?");
                 updateQuery.bind(1, vector.versionId);
                 updateQuery.bind(2, vector.unique_id);
@@ -75,12 +72,11 @@ int VectorManager::addVector(Vector& vector) {
                 updateQuery.bind(5, static_cast<int>(vector.id));
                 updateQuery.exec();
 
-                spdlog::debug("Deleting old VectorValue entries for vector ID: {}", vector.id);
                 SQLite::Statement deleteValueQuery(db, "DELETE FROM VectorValue WHERE vectorId = ?");
                 deleteValueQuery.bind(1, static_cast<int>(vector.id));
                 deleteValueQuery.exec();
             } else {
-                spdlog::info("Vector with UniqueID {} does not exist. Inserting new vector.", vector.unique_id);
+                spdlog::debug("Vector with UniqueID {} does not exist. Inserting new vector.", vector.unique_id);
 
                 SQLite::Statement query(db, "INSERT INTO Vector (versionId, unique_id, type, deleted) VALUES (?, ?, ?, ?)");
                 query.bind(1, vector.versionId);
@@ -93,7 +89,7 @@ int VectorManager::addVector(Vector& vector) {
                 spdlog::debug("Inserted new vector with auto-assigned ID: {}", vector.id);
             }
         } else {
-            spdlog::info("Inserting new vector without UniqueID for VersionID: {}", vector.versionId);
+            spdlog::debug("Inserting new vector without UniqueID for VersionID: {}", vector.versionId);
 
             SQLite::Statement maxUniqueIdQuery(db, "SELECT IFNULL(MAX(unique_id), 0) + 1 FROM Vector WHERE versionId = ?");
             maxUniqueIdQuery.bind(1, vector.versionId);
@@ -111,10 +107,7 @@ int VectorManager::addVector(Vector& vector) {
             spdlog::debug("Inserted new vector with auto-assigned ID: {}", vector.id);
         }
 
-        spdlog::info("Processing VectorValue entries for vector ID: {}", vector.id);
-
-        // Cache for HNSW configurations to avoid redundant queries
-        std::unordered_map<int, nlohmann::json> hnswConfigCache;
+        spdlog::debug("Processing VectorValue entries for vector ID: {}", vector.id);
 
         for (auto& value : vector.values) {
             spdlog::debug("Inserting VectorValue for vector ID: {}, vectorIndexId: {}", vector.id, value.vectorIndexId);
@@ -132,51 +125,24 @@ int VectorManager::addVector(Vector& vector) {
 
             // Process based on vector type
             if (value.type == VectorValueType::Dense || value.type == VectorValueType::Sparse || value.type == VectorValueType::MultiVector) {
-                spdlog::info("Processing HNSW index update for vector ID: {}", vector.id);
-                
-                std::string indexFileName = std::to_string(vector.versionId) + "-" + std::to_string(vector.versionId) + "-" + std::to_string(value.vectorIndexId) + ".idx";
+                spdlog::debug("Processing HNSW index update for vector ID: {}", vector.id);
 
-                // Check if the HNSW config for the vectorIndexId is already cached
-                if (hnswConfigCache.find(value.vectorIndexId) == hnswConfigCache.end()) {
-                    // Fetch HNSW config only if not already cached
-                    SQLite::Statement optimizerQuery(db, "SELECT hnswConfigJson FROM VectorIndexOptimizer WHERE vectorIndexId = ?");
-                    optimizerQuery.bind(1, value.vectorIndexId);
+                auto hnswManager = HnswIndexLRUCache::getInstance().get(value.vectorIndexId);
 
-                    if (optimizerQuery.executeStep()) {
-                        std::string hnswConfigJson = optimizerQuery.getColumn(0).getString();
-                        nlohmann::json hnswConfig = nlohmann::json::parse(hnswConfigJson);
-                        hnswConfigCache[value.vectorIndexId] = hnswConfig;  // Cache the result
-                    } else {
-                        spdlog::error("Failed to fetch VectorIndexOptimizer for vectorIndexId: {}", value.vectorIndexId);
-                        throw std::runtime_error("Failed to fetch VectorIndexOptimizer for vectorIndexId: " + std::to_string(value.vectorIndexId));
-                    }
-                }
-
-                // Use the cached configuration
-                const nlohmann::json& hnswConfig = hnswConfigCache[value.vectorIndexId];
-                int M = hnswConfig.value("M", 16);
-                int efConstruction = hnswConfig.value("EfConstruct", 200);
-
-                spdlog::debug("HNSW configuration: M={}, EfConstruct={}", M, efConstruction);
-
-                // Get HnswIndexManager and add vector data
-                auto hnswManager = HnswIndexLRUCache::getInstance().get(value.vectorIndexId, indexFileName, 128, 10000);
-                
-                // Add vector data based on type
                 if (value.type == VectorValueType::Dense) {
                     hnswManager->addVectorData(value.denseData, vector.unique_id);
                 } else if (value.type == VectorValueType::Sparse) {
-                    hnswManager->addVectorData(value.sparseValues, vector.unique_id);  // Sparse data handling
+                    hnswManager->addVectorData(value.sparseValues, vector.unique_id);
                 } else if (value.type == VectorValueType::MultiVector) {
                     for (const auto& mvData : value.multiVectorData) {
-                        hnswManager->addVectorData(mvData, vector.unique_id);  // MultiVector data handling
+                        hnswManager->addVectorData(mvData, vector.unique_id);
                     }
                 }
             }
         }
 
         transaction.commit();
-        spdlog::info("Transaction committed successfully for Vector UniqueID: {}", vector.unique_id);
+        spdlog::debug("Transaction committed successfully for Vector UniqueID: {}", vector.unique_id);
     } catch (const std::exception& e) {
         spdlog::error("Exception occurred while adding or updating vector: {}", e.what());
         transaction.rollback();
@@ -185,7 +151,6 @@ int VectorManager::addVector(Vector& vector) {
 
     return vector.id;
 }
-
 
 std::vector<Vector> VectorManager::getAllVectors() {
     auto& db = DatabaseManager::getInstance().getDatabase();

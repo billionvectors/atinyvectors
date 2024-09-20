@@ -24,27 +24,24 @@ public:
     int size;
     std::vector<std::vector<float>> multiVectorData;
 
-    // 기본 생성자
     VectorValue()
         : id(0), vectorId(0), vectorIndexId(0), type(VectorValueType::Dense), size(0) {}
 
-    // 파라미터 생성자
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type)
         : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), size(0) {}
 
-    // DenseData용 생성자
+    // DenseData
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, const std::vector<float>& denseData)
         : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), denseData(denseData), size(0) {}
 
-    // SparseData용 생성자
+    // SparseData
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, const std::vector<int>& sparseIndices, const std::vector<float>& sparseValues)
         : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), sparseIndices(sparseIndices), sparseValues(sparseValues), size(0) {}
 
-    // MultiVectorData용 생성자
+    // MultiVectorData
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, int size, const std::vector<std::vector<float>>& multiVectorData)
         : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), size(size), multiVectorData(multiVectorData) {}
 
-    // 데이터 직렬화 및 역직렬화 메서드
     std::vector<uint8_t> serialize() const;
     void deserialize(const std::vector<uint8_t>& blobData);
 };
@@ -70,13 +67,14 @@ private:
     static std::mutex instanceMutex;
 
     VectorManager();
-    void createTable();
 
 public:
     VectorManager(const VectorManager&) = delete;
     VectorManager& operator=(const VectorManager&) = delete;
 
     static VectorManager& getInstance();
+
+    void createTable();
 
     int addVector(Vector& vector);
     std::vector<Vector> getAllVectors();

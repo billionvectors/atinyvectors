@@ -1,11 +1,14 @@
 #include "Version.hpp"
 #include "DatabaseManager.hpp"
-#include <chrono>
+#include "IdCache.hpp"
+#include "utils/Utils.hpp"
+
+using namespace atinyvectors::utils;
 
 namespace atinyvectors {
 
 namespace {
-// internal functions
+// Internal functions
 void bindVersionParameters(SQLite::Statement& query, const Version& version) {
     query.bind(1, version.spaceId);            // spaceId
     query.bind(2, version.unique_id);          // unique_id
@@ -45,12 +48,6 @@ std::vector<Version> executeSelectQuery(const std::string& queryStr) {
     return executeSelectQuery(query);
 }
 
-long getCurrentTimeUTC() {
-    return std::chrono::duration_cast<std::chrono::seconds>(
-               std::chrono::system_clock::now().time_since_epoch())
-        .count();
-}
-
 } // anonymous namespace
 
 //
@@ -75,6 +72,11 @@ void VersionManager::createTable() {
             "is_default BOOLEAN DEFAULT 0, "
             "FOREIGN KEY(spaceId) REFERENCES Space(id) "
             ");");
+
+    // Create an index on the unique_id column in Version table
+    db.exec("CREATE INDEX IF NOT EXISTS idx_version_unique_id ON Version(unique_id);");
+
+    IdCache::getInstance().clean();
 }
 
 VersionManager& VersionManager::getInstance() {
@@ -86,22 +88,24 @@ VersionManager& VersionManager::getInstance() {
 }
 
 int VersionManager::addVersion(Version& version) {
+    IdCache::getInstance().clean();
+
     auto& db = DatabaseManager::getInstance().getDatabase();
     
     SQLite::Transaction transaction(db);
     
-    // unique_id를 spaceId 별로 최대값 + 1으로 설정
+    // Set unique_id to the maximum value by spaceId + 1
     SQLite::Statement maxUniqueIdQuery(db, "SELECT IFNULL(MAX(unique_id), 0) + 1 FROM Version WHERE spaceId = ?");
     maxUniqueIdQuery.bind(1, version.spaceId);
     if (maxUniqueIdQuery.executeStep()) {
         version.unique_id = maxUniqueIdQuery.getColumn(0).getInt();
     } else {
-        version.unique_id = 1; // 기본값
+        version.unique_id = 1; // default value
     }
 
     spdlog::debug("Calculated unique_id: {}", version.unique_id);
 
-    // 해당 spaceId에 기본 버전이 존재하는지 확인
+    // Check if a default version exists for the given spaceId
     SQLite::Statement checkDefaultQuery(db, "SELECT COUNT(*) FROM Version WHERE spaceId = ? AND is_default = 1");
     checkDefaultQuery.bind(1, version.spaceId);
     int defaultCount = 0;
@@ -110,18 +114,17 @@ int VersionManager::addVersion(Version& version) {
     }
 
     if (defaultCount == 0) {
-        // 기본 버전이 없으면, 새 버전을 기본 버전으로 설정
+        // If no default version exists, set the new version as the default
         version.is_default = true;
         spdlog::debug("No default version found for spaceId: {}. Setting is_default to true.", version.spaceId);
     } else if (version.is_default) {
-        // 기본 버전이 이미 존재하고, 새 버전이 기본으로 설정되면 기존 기본 버전을 업데이트
+        // If a default version already exists and the new version is set as default, update the existing default version
         SQLite::Statement updateQuery(db, "UPDATE Version SET is_default = 0 WHERE spaceId = ?");
         updateQuery.bind(1, version.spaceId);
         updateQuery.exec();
         spdlog::debug("Updated existing default versions for spaceId: {} to is_default = false.", version.spaceId);
     }
 
-    // 현재 시간을 UTC로 설정
     long currentTime = getCurrentTimeUTC();
     version.created_time_utc = currentTime;
     version.updated_time_utc = currentTime;
@@ -129,7 +132,7 @@ int VersionManager::addVersion(Version& version) {
     spdlog::debug("Inserting version: spaceId={}, unique_id={}, name={}, description={}, tag={}, created_time_utc={}, updated_time_utc={}, is_default={}",
                  version.spaceId, version.unique_id, version.name, version.description, version.tag, version.created_time_utc, version.updated_time_utc, version.is_default);
 
-    // 버전 삽입
+    // Insert version
     SQLite::Statement insertQuery(db, "INSERT INTO Version (spaceId, unique_id, name, description, tag, created_time_utc, updated_time_utc, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     bindVersionParameters(insertQuery, version);
     insertQuery.exec();
@@ -141,7 +144,6 @@ int VersionManager::addVersion(Version& version) {
 
     return version.id;
 }
-
 
 std::vector<Version> VersionManager::getAllVersions() {
     return executeSelectQuery("SELECT id, spaceId, unique_id, name, description, tag, created_time_utc, updated_time_utc, is_default FROM Version");
@@ -193,6 +195,8 @@ Version VersionManager::getDefaultVersion(int spaceId) {
 }
 
 void VersionManager::updateVersion(const Version& version) {
+    IdCache::getInstance().clean();
+
     auto& db = DatabaseManager::getInstance().getDatabase();
     
     SQLite::Transaction transaction(db);
@@ -223,6 +227,8 @@ void VersionManager::updateVersion(const Version& version) {
 }
 
 void VersionManager::deleteVersion(int id) {
+    IdCache::getInstance().clean();
+
     auto& db = DatabaseManager::getInstance().getDatabase();
 
     SQLite::Transaction transaction(db);

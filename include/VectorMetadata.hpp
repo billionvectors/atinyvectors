@@ -30,13 +30,13 @@ private:
 
     VectorMetadataManager();
 
-    void createTable();
-
 public:
     VectorMetadataManager(const VectorMetadataManager&) = delete;
     VectorMetadataManager& operator=(const VectorMetadataManager&) = delete;
 
     static VectorMetadataManager& getInstance();
+    
+    void createTable();
 
     long addVectorMetadata(VectorMetadata& metadata);
     std::vector<VectorMetadata> getAllVectorMetadata();

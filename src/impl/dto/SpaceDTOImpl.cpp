@@ -1,5 +1,12 @@
 #include "dto/SpaceDTO.hpp"
 
+#include "Space.hpp"
+#include "Version.hpp"
+#include "Vector.hpp"
+#include "VectorIndex.hpp"
+#include "VectorMetadata.hpp"
+#include "Config.hpp"
+
 #include <string>
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <memory>
@@ -7,12 +14,6 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include "Space.hpp"
-#include "Version.hpp"
-#include "Vector.hpp"
-#include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
-#include "VectorMetadata.hpp"
 
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
@@ -26,7 +27,6 @@ namespace dto
 namespace
 {
 
-// Internal headers
 MetricType metricTypeFromString(const std::string& metric);
 
 void processDenseConfiguration(const json& parsedJson, int versionId);
@@ -49,24 +49,23 @@ MetricType metricTypeFromString(const std::string& metric) {
 }
 
 void processDenseConfiguration(const json& parsedJson, int versionId) {
-    int denseDimension = parsedJson.value("dimension", 128);
-    std::string denseMetric = parsedJson.value("metric", "cosine");
+    int denseDimension = parsedJson.value("dimension", 0);
+    std::string denseMetric = parsedJson.value("metric", "l2");
     std::transform(denseMetric.begin(), denseMetric.end(), denseMetric.begin(), ::tolower);
 
     HnswConfig defaultHnswConfig;
     if (parsedJson.contains("hnsw_config")) {
         json hnswConfigJson = parsedJson["hnsw_config"];
         
-        // Handle both cases for "M" or "m"
         if (hnswConfigJson.contains("M")) {
             defaultHnswConfig.M = hnswConfigJson["M"];
         } else if (hnswConfigJson.contains("m")) {
             defaultHnswConfig.M = hnswConfigJson["m"];
         } else {
-            defaultHnswConfig.M = 32;  // Default value for M
+            defaultHnswConfig.M = Config::getInstance().getM();
         }
 
-        defaultHnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", 200);  // Default EfConstruct to 200
+        defaultHnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", Config::getInstance().getEfConstruction());
     }
 
     QuantizationConfig defaultQuantizationConfig;
@@ -91,16 +90,15 @@ void processDenseConfiguration(const json& parsedJson, int versionId) {
         if (denseJson.contains("hnsw_config")) {
             json hnswConfigJson = denseJson["hnsw_config"];
             
-            // Handle both cases for "M" or "m"
             if (hnswConfigJson.contains("M")) {
                 hnswConfig.M = hnswConfigJson["M"];
             } else if (hnswConfigJson.contains("m")) {
                 hnswConfig.M = hnswConfigJson["m"];
             } else {
-                hnswConfig.M = 32;
+                hnswConfig.M = Config::getInstance().getM();
             }
 
-            hnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", hnswConfig.EfConstruct);
+            hnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", Config::getInstance().getEfConstruction());
         }
 
         QuantizationConfig quantizationConfig = defaultQuantizationConfig;
@@ -144,13 +142,12 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
         std::string indexName = it.key();
         const json& indexJson = it.value();
 
-        int dimension = indexJson.value("dimension", 128); // Default to 128 if not provided
-        std::string metric = indexJson.value("metric", "cosine");
+        int dimension = indexJson.value("dimension", 0); 
+        std::string metric = indexJson.value("metric", "l2");
         std::transform(metric.begin(), metric.end(), metric.begin(), ::tolower);
 
         HnswConfig hnswConfig;
 
-        // Check for both "M" and "m" keys and apply the correct value
         if (indexJson.contains("hnsw_config")) {
             json hnswConfigJson = indexJson["hnsw_config"];
             if (hnswConfigJson.contains("M")) {
@@ -158,9 +155,9 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
             } else if (hnswConfigJson.contains("m")) {
                 hnswConfig.M = hnswConfigJson["m"];
             } else {
-                hnswConfig.M = 32;  // Default to 32 if not provided
+                hnswConfig.M = Config::getInstance().getM();
             }
-            hnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", 200);
+            hnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", Config::getInstance().getEfConstruction());
         }
 
         QuantizationConfig quantizationConfig;
@@ -179,28 +176,17 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
     }
 }
 
-
 int createDenseVectorIndex(int versionId, const std::string& name, int denseDimension, const std::string& denseMetric,
                       const HnswConfig& hnswConfig, const QuantizationConfig& quantizationConfig, bool is_default) {
-    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, name, 0, 0, is_default);
-    int vectorIndexId = VectorIndexManager::getInstance().addVectorIndex(vectorIndex);
-
-    VectorIndexOptimizer denseOptimizer(0, vectorIndexId, metricTypeFromString(denseMetric), denseDimension);
-    denseOptimizer.setHnswConfig(hnswConfig);
-    denseOptimizer.setQuantizationConfig(quantizationConfig);
-    int optimizerId = VectorIndexOptimizerManager::getInstance().addOptimizer(denseOptimizer);
-
-    return vectorIndexId;
+    VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, name, metricTypeFromString(denseMetric), denseDimension,
+                            hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, is_default);
+    return VectorIndexManager::getInstance().addVectorIndex(vectorIndex);
 }
 
 int createSparseVectorIndex(int versionId, const std::string& name, const std::string& sparseMetric, bool is_default) {
-    VectorIndex sparseVectorIndex(0, versionId, VectorValueType::Sparse, name, 0, 0, is_default);
-    int sparseVectorIndexId = VectorIndexManager::getInstance().addVectorIndex(sparseVectorIndex);
-
-    VectorIndexOptimizer sparseOptimizer(0, sparseVectorIndexId, metricTypeFromString(sparseMetric), 0);
-    int sparseOptimizerId = VectorIndexOptimizerManager::getInstance().addOptimizer(sparseOptimizer);
-
-    return sparseVectorIndexId;
+    VectorIndex sparseVectorIndex(0, versionId, VectorValueType::Sparse, name, metricTypeFromString(sparseMetric), 0,
+                                  "{}", "{}", 0, 0, is_default);
+    return VectorIndexManager::getInstance().addVectorIndex(sparseVectorIndex);
 }
 
 nlohmann::json fetchSpaceDetails(const Space& space) {
@@ -215,7 +201,6 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
 
     spdlog::info("Space created at: {}, updated at: {}", space.created_time_utc, space.updated_time_utc);
 
-    // Fetching versions for the space
     auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
     if (versions.empty()) {
         spdlog::error("No versions found for spaceId: {}", space.id);
@@ -228,7 +213,6 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
 
     spdlog::info("Found versionId: {} for spaceId: {}", version.unique_id, space.id);
 
-    // Fetching vector indices for the version
     auto vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(version.id);
     spdlog::info("Found {} vector indices for versionId: {}", vectorIndices.size(), version.id);
     
@@ -244,30 +228,10 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
         vectorIndexJson["created_time_utc"] = vectorIndex.create_date_utc;
         vectorIndexJson["updated_time_utc"] = vectorIndex.updated_time_utc;
         vectorIndexJson["is_default"] = vectorIndex.is_default;
-
-        spdlog::debug("VectorIndex details: created_time_utc: {}, updated_time_utc: {}, is_default: {}",
-                      vectorIndex.create_date_utc, vectorIndex.updated_time_utc, vectorIndex.is_default);
-
-        // Fetching optimizer for the vector index
-        auto optimizers = VectorIndexOptimizerManager::getInstance().getOptimizerByIndexId(vectorIndex.id);
-        if (!optimizers.empty()) {
-            const auto& optimizer = optimizers[0];
-
-            // Convert hnswConfigJson to a JSON object
-            nlohmann::json hnswConfigJson = nlohmann::json::parse(optimizer.hnswConfigJson);
-
-            spdlog::debug("Optimizer HNSW Config for optimizerId: {}: {}", optimizer.id, hnswConfigJson.dump());
-
-            nlohmann::json optimizerJson;
-            optimizerJson["optimizerId"] = optimizer.id;
-            optimizerJson["hnswConfig"] = hnswConfigJson;
-            optimizerJson["metricType"] = static_cast<int>(optimizer.metricType);
-            optimizerJson["dimension"] = optimizer.dimension;
-
-            vectorIndexJson["optimizer"] = optimizerJson;
-        } else {
-            spdlog::warn("No optimizers found for vectorIndexId: {}", vectorIndex.id);
-        }
+        vectorIndexJson["metricType"] = static_cast<int>(vectorIndex.metricType);
+        vectorIndexJson["dimension"] = vectorIndex.dimension;
+        vectorIndexJson["hnswConfig"] = nlohmann::json::parse(vectorIndex.hnswConfigJson);
+        vectorIndexJson["quantizationConfig"] = nlohmann::json::parse(vectorIndex.quantizationConfigJson);
 
         vectorIndicesJson.push_back(vectorIndexJson);
     }
@@ -279,7 +243,6 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
 
     return result;
 }
-
 
 } // anonymous namespace
 
@@ -293,11 +256,9 @@ void SpaceDTOManager::createSpace(const std::string& jsonStr) {
         spaceName = parsedJson["name"];
     }
 
-    // Create and add Space
     Space space(0, spaceName, spaceDescription, 0, 0);
     int spaceId = SpaceManager::getInstance().addSpace(space);
 
-    // Create and add default Version
     Version defaultVersion(0, spaceId, 0, "Default Version", "Automatically created default version", "v1", 0, 0, true);
     int versionId = VersionManager::getInstance().addVersion(defaultVersion);
 
@@ -309,7 +270,6 @@ void SpaceDTOManager::createSpace(const std::string& jsonStr) {
 nlohmann::json SpaceDTOManager::getBySpaceId(int spaceId) {
     spdlog::info("Starting getBySpaceId for spaceId: {}", spaceId);
 
-    // Fetch the space by spaceId
     try {
         auto space = SpaceManager::getInstance().getSpaceById(spaceId);
         if (space.id != spaceId) {
@@ -319,7 +279,6 @@ nlohmann::json SpaceDTOManager::getBySpaceId(int spaceId) {
 
         spdlog::info("Found space with spaceId: {}, name: {}", space.id, space.name);
 
-        // Fetch and return space details
         return fetchSpaceDetails(space);
     } catch (const std::exception& e) {
         spdlog::error("Exception occurred in getBySpaceId for spaceId: {}. Error: {}", spaceId, e.what());
@@ -330,7 +289,6 @@ nlohmann::json SpaceDTOManager::getBySpaceId(int spaceId) {
 nlohmann::json SpaceDTOManager::getBySpaceName(const std::string& spaceName) {
     spdlog::info("Starting getBySpaceName for spaceName: {}", spaceName);
 
-    // Fetch the space using the space name
     try {
         auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
         if (space.id <= 0) {
@@ -340,7 +298,6 @@ nlohmann::json SpaceDTOManager::getBySpaceName(const std::string& spaceName) {
 
         spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
 
-        // Fetch and return space details
         return fetchSpaceDetails(space);
     } catch (const std::exception& e) {
         spdlog::error("Exception occurred in getBySpaceName for spaceName: {}. Error: {}", spaceName, e.what());
@@ -352,17 +309,14 @@ nlohmann::json SpaceDTOManager::getLists() {
     nlohmann::json result;
     nlohmann::json values = nlohmann::json::array();
 
-    // Fetch all spaces
     auto spaces = SpaceManager::getInstance().getAllSpaces();
 
-    // Iterate through the spaces and add them to the JSON array
     for (const auto& space : spaces) {
         nlohmann::json spaceJson;
         spaceJson[space.name] = space.id;
         values.push_back(spaceJson);
     }
 
-    // Create the final result structure
     result["values"] = values;
 
     return result;

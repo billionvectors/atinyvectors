@@ -17,9 +17,11 @@ class HnswIndexLRUCache {
 public:
     HnswIndexLRUCache(size_t capacity = atinyvectors::Config::getInstance().getHnswIndexCacheCapacity()) : capacity_(capacity) {}
     
-    std::shared_ptr<HnswIndexManager> get(int vectorIndexId, const std::string& indexFileName, int dim, int maxElements);
+    std::shared_ptr<HnswIndexManager> get(int vectorIndexId);
 
     std::string getCacheContents() const;
+
+    void clean();
 
     static HnswIndexLRUCache& getInstance();
 

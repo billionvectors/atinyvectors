@@ -1,63 +1,91 @@
 #include <gtest/gtest.h>
-#include "Version.hpp"
-#include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
-#include "DatabaseManager.hpp"
-#include "ValueType.hpp"
+#include "algo/HnswIndexLRUCache.hpp"
 #include "Vector.hpp"
+#include "VectorIndex.hpp"
+#include "VectorMetadata.hpp"
+#include "Version.hpp"
+#include "Space.hpp"
+#include "Snapshot.hpp"
+#include "DatabaseManager.hpp"
+#include "IdCache.hpp"
+#include "utils/Utils.hpp"
 
 using namespace atinyvectors;
+using namespace atinyvectors::algo;
+using namespace atinyvectors::utils;
 
 // Fixture for VectorManager tests
 class VectorManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Set up a clean test database
-        VectorManager& vectorManager = VectorManager::getInstance();
-        auto& db = DatabaseManager::getInstance().getDatabase();
+        IdCache::getInstance().clean();
 
-        createTestIndexAndOptimizer();
+        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
+        snapshotManager.createTable();
+
+        SpaceManager& spaceManager = SpaceManager::getInstance();
+        spaceManager.createTable();
+        
+        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
+        vectorIndexManager.createTable();
+
+        VersionManager& versionManager = VersionManager::getInstance();
+        versionManager.createTable();
+
+        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
+        metadataManager.createTable();
+
+        VectorManager& vectorManager = VectorManager::getInstance();
+        vectorManager.createTable();
+
+        auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
+        db.exec("DELETE FROM Space;");
+        db.exec("DELETE FROM VectorIndex;");
+        db.exec("DELETE FROM Version;");
+        db.exec("DELETE FROM VectorMetadata;");
+        db.exec("DELETE FROM Vector;");
+        db.exec("DELETE FROM VectorValue;");
+
+        // clean data
+        HnswIndexLRUCache::getInstance().clean();
+
+        createTestIndex();
     }
 
     void TearDown() override {
-        // Cleanup after each test if necessary
-        VectorManager& vectorManager = VectorManager::getInstance();
+        // Clear data after each test
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
+        db.exec("DELETE FROM Space;");
+        db.exec("DELETE FROM VectorIndex;");
+        db.exec("DELETE FROM Version;");
+        db.exec("DELETE FROM VectorMetadata;");
         db.exec("DELETE FROM Vector;");
         db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
     }
 
-    // Test용 인덱스와 최적화 데이터를 생성하는 함수
-    void createTestIndexAndOptimizer() {
-        auto& db = DatabaseManager::getInstance().getDatabase();
-
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        VectorIndexOptimizerManager& vectorIndexOptimizerManager = VectorIndexOptimizerManager::getInstance();
+    void createTestIndex() {
+        SpaceManager& spaceManager = SpaceManager::getInstance();
         VersionManager& versionManager = VersionManager::getInstance();
-        
-        // VectorIndex 생성
-        SQLite::Statement indexQuery(db, "INSERT INTO VectorIndex (versionId, vectorValueType, name, create_date_utc, updated_time_utc, is_default) VALUES (?, ?, ?, ?, ?, ?)");
-        indexQuery.bind(1, 1); // versionId
-        indexQuery.bind(2, static_cast<int>(VectorValueType::Dense)); // vectorValueType
-        indexQuery.bind(3, "TestIndex"); // name
-        indexQuery.bind(4, 123456789); // create_date_utc
-        indexQuery.bind(5, 123456789); // updated_time_utc
-        indexQuery.bind(6, 1); // is_default
-        indexQuery.exec();
 
-        int vectorIndexId = static_cast<int>(db.getLastInsertRowid());
+        // Add a new space and capture the returned spaceId
+        Space space(0, "Test Space", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
+        spaceId = spaceManager.addSpace(space); // Capture the returned id
 
-        // VectorIndexOptimizer 생성
-        SQLite::Statement optimizerQuery(db, "INSERT INTO VectorIndexOptimizer (vectorIndexId, metricType, dimension, hnswConfigJson, quantizationConfigJson) VALUES (?, ?, ?, ?, ?)");
-        optimizerQuery.bind(1, vectorIndexId); // vectorIndexId
-        optimizerQuery.bind(2, static_cast<int>(MetricType::L2)); // metricType
-        optimizerQuery.bind(3, 128); // dimension
-        optimizerQuery.bind(4, "{\"M\": 16, \"EfConstruct\": 200}"); // hnswConfigJson
-        optimizerQuery.bind(5, "{}"); // quantizationConfigJson
-        optimizerQuery.exec();
+        // Add the first version with is_default set to true
+        Version version1;
+        version1.spaceId = spaceId;
+        version1.name = "Version 1.0";
+        version1.description = "Initial version";
+        version1.tag = "v1.0";
+        version1.is_default = true;
+
+        versionId = versionManager.addVersion(version1);
     }
+
+    int spaceId;
+    int versionId;
 };
 
 // Test for adding a new vector
@@ -65,7 +93,7 @@ TEST_F(VectorManagerTest, AddVector) {
     VectorManager& manager = VectorManager::getInstance();
     
     // Update constructor call to include unique_id
-    Vector vector(0, 1, 0, VectorValueType::Dense, {}, false); // Provide 0 as unique_id
+    Vector vector(0, versionId, 0, VectorValueType::Dense, {}, false); // Provide 0 as unique_id
     int vectorId = manager.addVector(vector);
 
     EXPECT_EQ(vector.id, vectorId);  // Ensure ID is set correctly
@@ -73,7 +101,7 @@ TEST_F(VectorManagerTest, AddVector) {
     auto vectors = manager.getAllVectors();
     ASSERT_EQ(vectors.size(), 1);
     EXPECT_EQ(vectors[0].id, vectorId);
-    EXPECT_EQ(vectors[0].versionId, 1);
+    EXPECT_EQ(vectors[0].versionId, versionId);
     EXPECT_EQ(vectors[0].type, VectorValueType::Dense);
     EXPECT_FALSE(vectors[0].deleted);
 }
@@ -83,7 +111,7 @@ TEST_F(VectorManagerTest, GetVectorById) {
     VectorManager& manager = VectorManager::getInstance();
 
     // Update constructor call to include unique_id
-    Vector vector(0, 1, 0, VectorValueType::Sparse, {}, false); // Provide 0 as unique_id
+    Vector vector(0, versionId, 0, VectorValueType::Sparse, {}, false); // Provide 0 as unique_id
     manager.addVector(vector);
 
     auto vectors = manager.getAllVectors();
@@ -93,7 +121,7 @@ TEST_F(VectorManagerTest, GetVectorById) {
     Vector retrievedVector = manager.getVectorById(vectorId);
 
     EXPECT_EQ(retrievedVector.id, vectorId);
-    EXPECT_EQ(retrievedVector.versionId, 1);
+    EXPECT_EQ(retrievedVector.versionId, versionId);
     EXPECT_EQ(retrievedVector.type, VectorValueType::Sparse);
 }
 
@@ -102,7 +130,7 @@ TEST_F(VectorManagerTest, UpdateVector) {
     VectorManager& manager = VectorManager::getInstance();
 
     // Update constructor call to include unique_id
-    Vector vector(0, 1, 0, VectorValueType::Combined, {}, false); // Provide 0 as unique_id
+    Vector vector(0, versionId, 0, VectorValueType::Combined, {}, false); // Provide 0 as unique_id
     manager.addVector(vector);
 
     auto vectors = manager.getAllVectors();
@@ -110,12 +138,10 @@ TEST_F(VectorManagerTest, UpdateVector) {
 
     unsigned long long vectorId = vectors[0].id;
     Vector updatedVector = vectors[0];
-    updatedVector.versionId = 2;
     updatedVector.type = VectorValueType::MultiVector;
     manager.updateVector(updatedVector);
 
     Vector retrievedVector = manager.getVectorById(vectorId);
-    EXPECT_EQ(retrievedVector.versionId, 2);
     EXPECT_EQ(retrievedVector.type, VectorValueType::MultiVector);
 }
 
@@ -124,7 +150,7 @@ TEST_F(VectorManagerTest, DeleteVector) {
     VectorManager& manager = VectorManager::getInstance();
 
     // Update constructor call to include unique_id
-    Vector vector(0, 1, 0, VectorValueType::Dense, {}, false); // Provide 0 as unique_id
+    Vector vector(0, versionId, 0, VectorValueType::Dense, {}, false); // Provide 0 as unique_id
     manager.addVector(vector);
 
     auto vectors = manager.getAllVectors();
@@ -149,29 +175,23 @@ TEST_F(VectorManagerTest, HandleNonExistentVector) {
 TEST_F(VectorManagerTest, AddVectorWithValues) {
     VectorManager& manager = VectorManager::getInstance();
 
-    // Create a VectorIndex and VectorIndexOptimizer for the test
     auto& db = DatabaseManager::getInstance().getDatabase();
     
     // Insert a VectorIndex entry
-    SQLite::Statement indexQuery(db, "INSERT INTO VectorIndex (versionId, vectorValueType, name, create_date_utc, updated_time_utc, is_default) VALUES (?, ?, ?, ?, ?, ?)");
-    indexQuery.bind(1, 1);  // versionId
+    SQLite::Statement indexQuery(db, "INSERT INTO VectorIndex (versionId, vectorValueType, name, metricType, dimension, hnswConfigJson, quantizationConfigJson, create_date_utc, updated_time_utc, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    indexQuery.bind(1, versionId);  // versionId
     indexQuery.bind(2, static_cast<int>(VectorValueType::Dense));  // vectorValueType
     indexQuery.bind(3, "TestIndex");  // name
-    indexQuery.bind(4, 123456789);  // create_date_utc
-    indexQuery.bind(5, 123456789);  // updated_time_utc
-    indexQuery.bind(6, 1);  // is_default
+    indexQuery.bind(4, static_cast<int>(MetricType::L2));  // metricType
+    indexQuery.bind(5, 128);  // dimension
+    indexQuery.bind(6, "{\"M\": 16, \"EfConstruct\": 200}");  // hnswConfigJson
+    indexQuery.bind(7, "{}");  // quantizationConfigJson
+    indexQuery.bind(8, 123456789);  // create_date_utc
+    indexQuery.bind(9, 123456789);  // updated_time_utc
+    indexQuery.bind(10, 1);  // is_default
     indexQuery.exec();
     
     int vectorIndexId = static_cast<int>(db.getLastInsertRowid());
-
-    // Insert a VectorIndexOptimizer entry with matching vectorIndexId
-    SQLite::Statement optimizerQuery(db, "INSERT INTO VectorIndexOptimizer (vectorIndexId, metricType, dimension, hnswConfigJson, quantizationConfigJson) VALUES (?, ?, ?, ?, ?)");
-    optimizerQuery.bind(1, vectorIndexId);  // vectorIndexId
-    optimizerQuery.bind(2, static_cast<int>(MetricType::L2));  // metricType
-    optimizerQuery.bind(3, 128);  // dimension
-    optimizerQuery.bind(4, "{\"M\": 16, \"EfConstruct\": 200}");  // hnswConfigJson
-    optimizerQuery.bind(5, "{}");  // quantizationConfigJson
-    optimizerQuery.exec();
 
     // Create a VectorValue with example data and the correct vectorIndexId
     VectorValue vectorValue(0, 0, vectorIndexId, VectorValueType::Dense, std::vector<float>{1.1f, 2.2f, 3.3f});

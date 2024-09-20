@@ -1,22 +1,15 @@
 #include <gtest/gtest.h>
+#include <thread>
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
 #include "Version.hpp"
 #include "Space.hpp"
 #include "DatabaseManager.hpp"
-#include <chrono>
-#include <thread>
+
+#include "utils/Utils.hpp"
 
 using namespace atinyvectors;
-
-namespace {
-long getCurrentTimeUTC() {
-    return std::chrono::duration_cast<std::chrono::seconds>(
-               std::chrono::system_clock::now().time_since_epoch())
-        .count();
-}
-}
+using namespace atinyvectors::utils;
 
 // Fixture for VersionManager tests
 class VersionManagerTest : public ::testing::Test {
@@ -24,7 +17,6 @@ protected:
     void SetUp() override {
         // Initialize managers
         SpaceManager::getInstance();
-        VectorIndexOptimizerManager::getInstance();
         VectorIndexManager::getInstance();
         VersionManager::getInstance();
         VectorManager::getInstance();
@@ -33,7 +25,6 @@ protected:
         // Clear relevant tables to ensure a clean state before each test
         auto& db = DatabaseManager::getInstance().getDatabase();
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM Vector;");
@@ -44,7 +35,6 @@ protected:
         // Clear relevant tables after each test to maintain isolation
         auto& db = DatabaseManager::getInstance().getDatabase();
         db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndexOptimizer;");
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM Vector;");

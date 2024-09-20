@@ -1,10 +1,6 @@
 #include "DatabaseManager.hpp"
-#include "VectorIndexOptimizer.hpp"
-#include "Space.hpp"
-#include "Version.hpp"
-#include "Vector.hpp"
-#include "VectorMetadata.hpp"
-#include "VectorIndex.hpp"
+#include <SQLiteCpp/Backup.h>
+#include <sqlite3.h>
 
 using namespace atinyvectors;
 

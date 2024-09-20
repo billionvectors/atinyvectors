@@ -3,9 +3,9 @@
 #include "Version.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
-#include "VectorIndexOptimizer.hpp"
 #include "VectorMetadata.hpp"
 #include "DatabaseManager.hpp"
+#include "IdCache.hpp"
 #include <algorithm>
 #include <stdexcept>
 #include <iostream>
@@ -21,67 +21,29 @@ namespace atinyvectors
 namespace dto
 {
 
-void VectorDTOManager::upsert(const std::string& spaceName, int versionId, const std::string& jsonStr) {
+void VectorDTOManager::upsert(const std::string& spaceName, int versionUniqueId, const std::string& jsonStr) {
     json parsedJson = json::parse(jsonStr);
-    auto& db = DatabaseManager::getInstance().getDatabase();
 
-    spdlog::info("Parsing JSON input. SpaceName={}, VersionId={}", spaceName, versionId);
+    spdlog::debug("Parsing JSON input. SpaceName={}, versionUniqueId={}", spaceName, versionUniqueId);
     spdlog::debug("Json={}", jsonStr);
 
-    // If versionId is 0, find the default version for the given space
-    if (versionId == 0) {
-        SQLite::Statement querySpace(db, "SELECT id FROM Space WHERE name = ?");
-        querySpace.bind(1, spaceName);
-        int spaceId = -1;
-
-        if (querySpace.executeStep()) {
-            spaceId = querySpace.getColumn(0).getInt();
-        } else {
-            throw std::runtime_error("Space not found with the specified name: " + spaceName);
-        }
-
-        SQLite::Statement queryVersion(db, "SELECT id FROM Version WHERE spaceId = ? AND is_default = 1");
-        queryVersion.bind(1, spaceId);
-
-        if (queryVersion.executeStep()) {
-            versionId = queryVersion.getColumn(0).getInt();
-        } else {
-            throw std::runtime_error("Default version not found for the specified space: " + spaceName);
-        }
-    }
-
-    int defaultIndexId = -1;
-    std::string selectedIndexName;
-
-    SQLite::Statement queryDefaultIndex(db, "SELECT id, name FROM VectorIndex WHERE versionId = ? AND is_default = 1");
-    queryDefaultIndex.bind(1, versionId);
-
-    if (queryDefaultIndex.executeStep()) {
-        defaultIndexId = queryDefaultIndex.getColumn(0).getInt();
-        selectedIndexName = queryDefaultIndex.getColumn(1).getString();
-    } else {
-        VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", 0, 0, true);
-        defaultIndexId = VectorIndexManager::getInstance().addVectorIndex(defaultIndex);
-        selectedIndexName = defaultIndex.name;
-    }
-
-    if (defaultIndexId == -1) {
-        throw std::runtime_error("Failed to find or create a default vector index for the specified version.");
-    }
+    IdCache& idCache = IdCache::getInstance();
+    int versionId = idCache.getVersionId(spaceName, versionUniqueId);
+    int vectorIndexId = idCache.getVectorIndexId(spaceName, versionUniqueId);
 
     // Process vectors in JSON
     if (parsedJson.contains("vectors") && parsedJson["vectors"].is_array()) {
         const auto& vectorsJson = parsedJson["vectors"];
         for (const auto& vectorJson : vectorsJson) {
-            int unique_id = vectorJson.value("id", 0);  // Map id from JSON to unique_id in Vector
-            int vectorId = 0;  // Default id is 0; the database assigns a new id if this is a new vector
+            int unique_id = vectorJson.value("id", 0); 
+            int vectorId = 0; 
 
             Vector vector(vectorId, versionId, unique_id, VectorValueType::Dense, {}, false);
 
             if (vectorJson.contains("data")) {
                 auto dataJson = vectorJson["data"];
                 if (dataJson.is_array()) {
-                    VectorValue denseValue(0, vector.id, defaultIndexId, VectorValueType::Dense, dataJson.get<std::vector<float>>());
+                    VectorValue denseValue(0, vector.id, vectorIndexId, VectorValueType::Dense, dataJson.get<std::vector<float>>());
                     vector.values.push_back(denseValue);
                 } else {
                     throw std::runtime_error("Data format is not supported in this context.");
@@ -106,15 +68,13 @@ void VectorDTOManager::upsert(const std::string& spaceName, int versionId, const
         if (parsedJson["data"].is_array()) {
             if (!parsedJson["data"].empty() && parsedJson["data"][0].is_array()) {
                 for (const auto& vectorData : parsedJson["data"]) {
-                    // Using unique_id = 0 for new vectors without explicit unique_id from JSON
                     Vector vector(0, versionId, 0, VectorValueType::Dense, {}, false);
-                    vector.values.push_back(VectorValue(0, vector.id, defaultIndexId, VectorValueType::Dense, vectorData.get<std::vector<float>>()));
+                    vector.values.push_back(VectorValue(0, vector.id, vectorIndexId, VectorValueType::Dense, vectorData.get<std::vector<float>>()));
                     VectorManager::getInstance().addVector(vector);
                 }
             } else {
-                // Using unique_id = 0 for new vectors without explicit unique_id from JSON
                 Vector vector(0, versionId, 0, VectorValueType::Dense, {}, false);
-                vector.values.push_back(VectorValue(0, vector.id, defaultIndexId, VectorValueType::Dense, parsedJson["data"].get<std::vector<float>>()));
+                vector.values.push_back(VectorValue(0, vector.id, vectorIndexId, VectorValueType::Dense, parsedJson["data"].get<std::vector<float>>()));
                 VectorManager::getInstance().addVector(vector);
             }
         }
@@ -140,8 +100,7 @@ void VectorDTOManager::processVectors(const json& parsedJson, int versionId, int
     for (const auto& vectorJson : vectorsJson) {
         int vectorId = vectorJson.value("id", 0);
 
-        // Correct the constructor call to provide unique_id, using 0 as a placeholder
-        Vector vector(vectorId, versionId, 0, VectorValueType::Dense, {}, false); // Provide a default value for unique_id
+        Vector vector(vectorId, versionId, 0, VectorValueType::Dense, {}, false); 
 
         if (vectorJson.contains("data")) {
             auto dataJson = vectorJson["data"];

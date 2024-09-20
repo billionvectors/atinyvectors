@@ -7,6 +7,8 @@ OUTPUT_DIR="./output/"  # Directory to store the extracted file
 LIBRARY_PATH="/app/build/libatinyvectors.so"  # Path of the library in the container
 NO_CACHE="true"
 
+rm -rf build/
+
 mkdir -p $OUTPUT_DIR
 
 # Parse arguments for build type and no-cache option

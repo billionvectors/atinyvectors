@@ -14,11 +14,11 @@ namespace algo
 
 class HnswIndexManager {
 public:
-    HnswIndexManager(const std::string& indexFileName, int dim, int maxElements, MetricType metric);
+    HnswIndexManager(const std::string& indexFileName, int vectorIndexId, int dim, int maxElements, MetricType metric, HnswConfig& hnswConfig);
     ~HnswIndexManager();
 
     void addVectorData(const std::vector<float>& vectorData, int vectorId);
-    void dumpVectorsToIndex(int vectorIndexId);
+    void restoreVectorsToIndex();
     void saveIndex();
     void loadIndex();
     std::vector<std::pair<float, hnswlib::labeltype>> search(const std::vector<float>& queryVector, size_t k);
@@ -26,12 +26,13 @@ public:
 
 private:
     void setSpace(MetricType metric);
-    void setOptimizerSettings(int vectorIndexId);
+    void setOptimizerSettings();
 
     std::vector<float> deserializeVector(const std::string& blobData);
 
 public:
     std::string indexFileName;
+    int vectorIndexId;
     int dim;
     int maxElements;
     hnswlib::HierarchicalNSW<float>* index;
@@ -39,6 +40,8 @@ public:
 private:
     hnswlib::SpaceInterface<float>* space;
     MetricType metricType;
+    HnswConfig* hnswConfig;
+    bool indexLoaded;
 };
 
 };

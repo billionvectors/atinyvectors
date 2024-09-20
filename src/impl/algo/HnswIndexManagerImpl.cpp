@@ -1,17 +1,21 @@
 #include "algo/HnswIndexManager.hpp"
+#include "Config.hpp"
 #include "spdlog/spdlog.h"
 #include "DatabaseManager.hpp"
 #include <fstream>
+#include "nlohmann/json.hpp"
 
 namespace atinyvectors
 {
 namespace algo
 {
 
-HnswIndexManager::HnswIndexManager(const std::string& indexFileName, int dim, int maxElements, MetricType metric)
-    : indexFileName(indexFileName), dim(dim), maxElements(maxElements), space(nullptr) {
+HnswIndexManager::HnswIndexManager(const std::string& indexFileName, int vectorIndexId, int dim, int maxElements, MetricType metric, HnswConfig& hnswConfig)
+    : indexFileName(indexFileName), vectorIndexId(vectorIndexId), dim(dim), maxElements(maxElements), space(nullptr), indexLoaded(false) {
     setSpace(metric);
-    index = new hnswlib::HierarchicalNSW<float>(space, maxElements);
+    this->hnswConfig = new HnswConfig(hnswConfig.M, hnswConfig.EfConstruct);
+    
+    index = nullptr;
 }
 
 HnswIndexManager::~HnswIndexManager() {
@@ -23,6 +27,10 @@ HnswIndexManager::~HnswIndexManager() {
         delete space;
         space = nullptr;
     }
+    if (hnswConfig != nullptr) {
+        delete hnswConfig;
+        hnswConfig = nullptr;
+    }
 }
 
 void HnswIndexManager::setSpace(MetricType metric) {
@@ -33,39 +41,43 @@ void HnswIndexManager::setSpace(MetricType metric) {
 
     if (metric == MetricType::L2) {
         space = new hnswlib::L2Space(dim);  // L2 distance space
-        spdlog::info("Space set successfully with metric: L2");
+        spdlog::debug("Space set successfully with metric: L2 dim={}", dim);
     } else if (metric == MetricType::InnerProduct) {
         space = new hnswlib::InnerProductSpace(dim);  // Inner product space
-        spdlog::info("Space set successfully with metric: Inner Product");
+        spdlog::debug("Space set successfully with metric: Inner Product dim={}", dim);
     } else if (metric == MetricType::Cosine) {
         // Cosine similarity can be approximated using L2 normalization.
         space = new hnswlib::L2Space(dim);  // Cosine similarity approximated by L2 normalized vectors
-        spdlog::info("Space set successfully with metric: Cosine");
+        spdlog::debug("Space set successfully with metric: Cosine dim={}", dim);
     } else {
         spdlog::error("Unknown metric type provided");
         throw std::invalid_argument("Unknown metric type");
     }
 }
 
-void HnswIndexManager::dumpVectorsToIndex(int vectorIndexId) {
-    spdlog::info("Starting dumpVectorsToIndex for vectorIndexId: {}", vectorIndexId);
+void HnswIndexManager::restoreVectorsToIndex() {
+    spdlog::debug("Starting restoreVectorsToIndex for vectorIndexId: {}", vectorIndexId);
 
     if (index) {
         delete index;
         index = nullptr;
     }
 
-    setOptimizerSettings(vectorIndexId);
+    setOptimizerSettings();
 
     auto& db = DatabaseManager::getInstance().getDatabase();
     
-    spdlog::info("Loading vectors from database for vectorIndexId: {}", vectorIndexId);
-    SQLite::Statement query(db, "SELECT data FROM VectorValue WHERE vectorIndexId = ? AND vectorId IN (SELECT id FROM Vector WHERE deleted = 0)");
+    spdlog::debug("Loading vectors from database for vectorIndexId: {}", vectorIndexId);
+    SQLite::Statement query(db, 
+        "SELECT V.unique_id, VV.data "
+        "FROM VectorValue VV "
+        "JOIN Vector V ON VV.vectorId = V.id "
+        "WHERE VV.vectorIndexId = ? AND V.deleted = 0");
     query.bind(1, vectorIndexId);
 
-    int id = 0;
     while (query.executeStep()) {
-        const std::string& blobData = query.getColumn(0);
+        int unique_id = query.getColumn(0).getInt();  // Get the unique_id from the Vector table
+        const std::string& blobData = query.getColumn(1).getString();
         std::vector<float> vectorData = deserializeVector(blobData);
 
         if (index == nullptr) {
@@ -73,52 +85,59 @@ void HnswIndexManager::dumpVectorsToIndex(int vectorIndexId) {
             throw std::runtime_error("Index not initialized.");
         }
 
-        spdlog::info("Adding vector data with ID: {} to index", id);
-        index->addPoint(vectorData.data(), id);
-        id++;
+        spdlog::debug("[fromDB] Adding vector data with unique ID: {} to index", unique_id);
+        index->addPoint(vectorData.data(), unique_id);  // Use unique_id as the identifier
     }
 
     saveIndex();
 }
 
-void HnswIndexManager::setOptimizerSettings(int vectorIndexId) {
-    spdlog::info("Setting optimizer settings for vectorIndexId: {}", vectorIndexId);
+void HnswIndexManager::setOptimizerSettings() {
+    spdlog::debug("Setting optimizer settings for vectorIndexId: {}", vectorIndexId);
 
     auto& db = DatabaseManager::getInstance().getDatabase();
 
-    SQLite::Statement query(db, "SELECT hnswConfigJson, metricType FROM VectorIndexOptimizer WHERE vectorIndexId = ?");
+    // Use VectorIndex table instead of VectorIndexOptimizer
+    SQLite::Statement query(db, "SELECT hnswConfigJson, metricType FROM VectorIndex WHERE id = ?");
     query.bind(1, vectorIndexId);
 
     if (query.executeStep()) {
         const std::string& hnswConfigJson = query.getColumn(0).getString();
-        int metricTypeValue = query.getColumn(1).getInt();  // metricType 값 가져오기
+        int metricTypeValue = query.getColumn(1).getInt();
 
-        // JSON 파싱하여 설정 적용
-        nlohmann::json hnswConfig = nlohmann::json::parse(hnswConfigJson);
+        nlohmann::json hnswConfig;
 
-        int M = hnswConfig.value("M", 16);
-        int efConstruction = hnswConfig.value("EfConstruct", 200);
-        
-        // metricType을 MetricType enum으로 변환
-        MetricType metricType = static_cast<MetricType>(metricTypeValue);  // metricType 값에 따라 설정
+        // Parse JSON safely and handle empty or invalid JSON
+        try {
+            hnswConfig = nlohmann::json::parse(hnswConfigJson.empty() ? "{}" : hnswConfigJson);
+        } catch (const nlohmann::json::parse_error& e) {
+            spdlog::warn("Failed to parse hnswConfigJson: {}. Using default configuration. Error: {}", hnswConfigJson, e.what());
+            hnswConfig = nlohmann::json::object();  // Set to empty JSON object if parsing fails
+        }
 
-        // 공간 설정
+        // Set default values for M and EfConstruct if not found in JSON
+        int M = hnswConfig.value("M", Config::getInstance().getM());
+        int efConstruction = hnswConfig.value("EfConstruct", Config::getInstance().getEfConstruction());
+
+        MetricType metricType = static_cast<MetricType>(metricTypeValue);
+
+        // set new space
         setSpace(metricType);
 
-        // 인덱스를 새로운 M 값으로 다시 생성
-        delete index;  // 기존 인덱스 삭제
+        // rebuild index with new hnswconfig
+        delete index;
         index = new hnswlib::HierarchicalNSW<float>(space, maxElements, M);
         index->ef_construction_ = efConstruction;
 
-        spdlog::info("Index created with M: {}, efConstruction: {}, Metric: {}", M, efConstruction, metricTypeValue);
+        spdlog::debug("Index created with M: {}, efConstruction: {}, Metric: {}", M, efConstruction, metricTypeValue);
     } else {
         spdlog::error("Failed to fetch optimizer settings for vectorIndexId: {}", vectorIndexId);
-        throw std::runtime_error("Failed to fetch VectorIndexOptimizer settings");
+        throw std::runtime_error("Failed to fetch VectorIndex settings");
     }
 }
 
 bool HnswIndexManager::indexNeedsUpdate() {
-    return false;
+    return !indexLoaded;
 }
 
 void HnswIndexManager::addVectorData(const std::vector<float>& vectorData, int vectorId) {
@@ -126,32 +145,41 @@ void HnswIndexManager::addVectorData(const std::vector<float>& vectorData, int v
         loadIndex();
     }
 
-    spdlog::info("Adding vector to HNSW index for vectorId: {}", vectorId);
+    spdlog::debug("Adding vector to HNSW index for vectorId: {}", vectorId);
     index->addPoint(vectorData.data(), vectorId);
 }
 
 void HnswIndexManager::loadIndex() {
-    spdlog::info("Attempting to load HNSW index from file: {}", indexFileName);
+    spdlog::debug("Attempting to load HNSW index from file: {}", indexFileName);
+
+    if (index != nullptr) {
+        delete index;
+        index = nullptr;
+    }
 
     std::ifstream indexFile(indexFileName);
     if (indexFile.good()) {
-        spdlog::info("HNSW index file found. Loading index from: {}", indexFileName);
+        spdlog::debug("HNSW index file found. Loading index from: {}", indexFileName);
 
-        delete index;
         index = new hnswlib::HierarchicalNSW<float>(space, indexFileName);
-        spdlog::info("HNSW index successfully loaded from file: {}", indexFileName);
+        spdlog::debug("HNSW index successfully loaded from file: {}", indexFileName);
     } else {
         spdlog::warn("HNSW index file not found. Creating a new index.");
         
-        delete index;
-        index = new hnswlib::HierarchicalNSW<float>(space, maxElements);
-        spdlog::info("New HNSW index created with maxElements: {}", maxElements);
+        restoreVectorsToIndex();
+
+        spdlog::debug("New HNSW index created with dim: {}", dim);
     }
+
+    indexLoaded = true;
 }
 
 void HnswIndexManager::saveIndex() {
-    spdlog::info("Saving HNSW index to file: {}", indexFileName);
-    index->saveIndex(indexFileName);
+    spdlog::debug("Saving HNSW index to file: {}", indexFileName);
+
+    if (index != nullptr) {
+        index->saveIndex(indexFileName);
+    }
 }
 
 std::vector<float> HnswIndexManager::deserializeVector(const std::string& blobData) {
@@ -165,7 +193,7 @@ std::vector<std::pair<float, hnswlib::labeltype>> HnswIndexManager::search(const
         loadIndex();
     }
 
-    spdlog::info("Searching HNSW index with k = {}", k);
+    spdlog::debug("Searching HNSW index with k = {}", k);
     return index->searchKnnCloserFirst(queryVector.data(), k);
 }
 

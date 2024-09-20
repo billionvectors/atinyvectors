@@ -15,7 +15,7 @@ atinyvectors is a high-performance vector search engine designed for efficient i
 - CMake 3.14+
 - Clang (or other C++ compiler)
 - GoogleTest for unit testing
-- SQLiteCpp and nlohmann/json libraries
+- SQLiteCpp, libzip and nlohmann/json libraries
 
 ## Building the Project
 

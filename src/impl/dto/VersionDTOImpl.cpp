@@ -9,6 +9,7 @@
 #include <iostream>
 #include "Version.hpp"
 #include "Space.hpp"
+#include "IdCache.hpp"
 
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
@@ -87,21 +88,10 @@ nlohmann::json VersionDTOManager::getByVersionId(const std::string& spaceName, i
     spdlog::info("Starting getByVersionId for spaceName: {}, versionUniqueId: {}", spaceName, versionUniqueId);
 
     try {
-        auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
-        if (space.id <= 0) {
-            spdlog::error("Space with name '{}' not found.", spaceName);
-            throw std::runtime_error("Space not found.");
-        }
-
-        spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
+        int versionId = IdCache::getInstance().getVersionId(spaceName, versionUniqueId);
 
         // Get version by spaceId and unique_id
-        auto version = VersionManager::getInstance().getVersionByUniqueId(space.id, versionUniqueId);
-        if (version.unique_id != versionUniqueId) {
-            spdlog::error("Version with unique_id: {} not found in space '{}'.", versionUniqueId, spaceName);
-            throw std::runtime_error("Version not found.");
-        }
-
+        auto version = VersionManager::getInstance().getVersionById(versionId);
         spdlog::info("Found version with unique_id: {}, name: {}", version.unique_id, version.name);
 
         return fetchVersionDetails(version);

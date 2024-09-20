@@ -1,5 +1,8 @@
 #include "Space.hpp"
 #include "DatabaseManager.hpp"
+#include "utils/Utils.hpp"
+
+using namespace atinyvectors::utils;
 
 namespace atinyvectors
 {
@@ -57,6 +60,9 @@ void SpaceManager::createTable() {
             "description TEXT, "
             "created_time_utc INTEGER, "
             "updated_time_utc INTEGER);");
+            
+    // Create an index on the name column
+    db.exec("CREATE INDEX IF NOT EXISTS idx_space_name ON Space(name);");
 }
 
 SpaceManager& SpaceManager::getInstance() {
@@ -69,6 +75,10 @@ SpaceManager& SpaceManager::getInstance() {
 
 int SpaceManager::addSpace(Space& space) {
     auto& db = DatabaseManager::getInstance().getDatabase();
+
+    space.created_time_utc = getCurrentTimeUTC();
+    space.updated_time_utc = getCurrentTimeUTC();
+
     SQLite::Statement query(db, "INSERT INTO Space (name, description, created_time_utc, updated_time_utc) VALUES (?, ?, ?, ?)");
     bindSpaceParameters(query, space);
     query.exec();
@@ -107,7 +117,9 @@ Space SpaceManager::getSpaceByName(const std::string& name) {
     throw std::runtime_error("Space with name '" + name + "' not found");
 }
 
-void SpaceManager::updateSpace(const Space& space) {
+void SpaceManager::updateSpace(Space& space) {
+    space.updated_time_utc = getCurrentTimeUTC();
+
     auto& db = DatabaseManager::getInstance().getDatabase();
     SQLite::Statement query(db, "UPDATE Space SET name = ?, description = ?, created_time_utc = ?, updated_time_utc = ? WHERE id = ?");
     bindSpaceParameters(query, space);
