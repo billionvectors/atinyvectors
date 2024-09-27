@@ -1,8 +1,17 @@
+#include "algo/HnswIndexLRUCache.hpp"
 #include "Space.hpp"
 #include "DatabaseManager.hpp"
+#include "IdCache.hpp"
+#include "Config.hpp"
 #include "utils/Utils.hpp"
 
+#include <filesystem>
+#include <iostream>
+
+using namespace atinyvectors::algo;
 using namespace atinyvectors::utils;
+
+namespace fs = std::filesystem;
 
 namespace atinyvectors
 {
@@ -39,6 +48,89 @@ std::vector<Space> executeSpaceSelectQuery(const std::string& queryStr) {
     auto& db = DatabaseManager::getInstance().getDatabase();
     SQLite::Statement query(db, queryStr);
     return executeSpaceSelectQuery(query);
+}
+
+// Helper function to retrieve all version IDs associated with a space
+std::vector<int> getVersionIdsBySpaceId(SQLite::Database& db, int spaceId) {
+    std::vector<int> versionIds;
+    SQLite::Statement query(db, "SELECT id FROM Version WHERE spaceId = ?");
+    query.bind(1, spaceId);
+    while (query.executeStep()) {
+        versionIds.push_back(query.getColumn(0).getInt());
+    }
+    return versionIds;
+}
+
+// Helper function to retrieve all vector index IDs associated with a list of version IDs
+std::vector<int> getVectorIndexIdsByVersionIds(SQLite::Database& db, const std::vector<int>& versionIds) {
+    std::vector<int> vectorIndexIds;
+    if (versionIds.empty()) return vectorIndexIds;
+
+    std::string placeholders = "(";
+    for (size_t i = 0; i < versionIds.size(); ++i) {
+        placeholders += "?";
+        if (i < versionIds.size() - 1) placeholders += ",";
+    }
+    placeholders += ")";
+
+    std::string queryStr = "SELECT id FROM VectorIndex WHERE versionId IN " + placeholders;
+    SQLite::Statement query(db, queryStr);
+    for (size_t i = 0; i < versionIds.size(); ++i) {
+        query.bind(static_cast<int>(i + 1), versionIds[i]);
+    }
+
+    while (query.executeStep()) {
+        vectorIndexIds.push_back(query.getColumn(0).getInt());
+    }
+    return vectorIndexIds;
+}
+
+// Helper function to retrieve all vector IDs associated with a list of vector index IDs
+std::vector<int> getVectorIdsByVectorIndexIds(SQLite::Database& db, const std::vector<int>& vectorIndexIds) {
+    std::vector<int> vectorIds;
+    if (vectorIndexIds.empty()) return vectorIds;
+
+    std::string placeholders = "(";
+    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+        placeholders += "?";
+        if (i < vectorIndexIds.size() - 1) placeholders += ",";
+    }
+    placeholders += ")";
+
+    std::string queryStr = "SELECT id FROM Vector WHERE versionId IN (SELECT versionId FROM VectorIndex WHERE id IN " + placeholders + ")";
+    SQLite::Statement query(db, queryStr);
+    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+        query.bind(static_cast<int>(i + 1), vectorIndexIds[i]);
+    }
+
+    while (query.executeStep()) {
+        vectorIds.push_back(query.getColumn(0).getInt());
+    }
+    return vectorIds;
+}
+
+// Helper function to retrieve all vector IDs directly associated with vector indexes
+std::vector<int> getVectorIdsByVectorIndexIdsAlternative(SQLite::Database& db, const std::vector<int>& vectorIndexIds) {
+    std::vector<int> vectorIds;
+    if (vectorIndexIds.empty()) return vectorIds;
+
+    std::string placeholders = "(";
+    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+        placeholders += "?";
+        if (i < vectorIndexIds.size() - 1) placeholders += ",";
+    }
+    placeholders += ")";
+
+    std::string queryStr = "SELECT id FROM Vector WHERE versionId IN (SELECT versionId FROM VectorIndex WHERE id IN " + placeholders + ")";
+    SQLite::Statement query(db, queryStr);
+    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+        query.bind(static_cast<int>(i + 1), vectorIndexIds[i]);
+    }
+
+    while (query.executeStep()) {
+        vectorIds.push_back(query.getColumn(0).getInt());
+    }
+    return vectorIds;
 }
 
 };
@@ -127,11 +219,129 @@ void SpaceManager::updateSpace(Space& space) {
     query.exec();
 }
 
-void SpaceManager::deleteSpace(int id) {
+void SpaceManager::deleteSpace(int spaceId) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "DELETE FROM Space WHERE id = ?");
-    query.bind(1, id);
-    query.exec();
+    auto space = getSpaceById(spaceId);
+    auto spaceName = space.name;
+
+    try {
+        // Begin transaction
+        db.exec("BEGIN TRANSACTION;");
+
+        // 1. Retrieve all version IDs associated with the space
+        std::vector<int> versionIds = getVersionIdsBySpaceId(db, spaceId);
+
+        if (!versionIds.empty()) {
+            // 2. Retrieve all vector index IDs associated with the versions
+            std::vector<int> vectorIndexIds = getVectorIndexIdsByVersionIds(db, versionIds);
+
+            if (!vectorIndexIds.empty()) {
+                // 3. Retrieve all vector IDs associated with the vector indexes
+                std::vector<int> vectorIds = getVectorIdsByVectorIndexIds(db, vectorIndexIds);
+
+                if (!vectorIds.empty()) {
+                    // 4. Delete from VectorMetadata where vectorId is in vectorIds
+                    std::string placeholders = "(";
+                    for (size_t i = 0; i < vectorIds.size(); ++i) {
+                        placeholders += "?";
+                        if (i < vectorIds.size() - 1) placeholders += ",";
+                    }
+                    placeholders += ")";
+
+                    std::string deleteVectorMetadataQuery = "DELETE FROM VectorMetadata WHERE vectorId IN " + placeholders + ";";
+                    SQLite::Statement stmtMetadata(db, deleteVectorMetadataQuery);
+                    for (size_t i = 0; i < vectorIds.size(); ++i) {
+                        stmtMetadata.bind(static_cast<int>(i + 1), vectorIds[i]);
+                    }
+                    stmtMetadata.exec();
+                }
+
+                // 5. Delete from VectorValue where vectorIndexId is in vectorIndexIds
+                if (!vectorIndexIds.empty()) {
+                    std::string placeholders = "(";
+                    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+                        placeholders += "?";
+                        if (i < vectorIndexIds.size() - 1) placeholders += ",";
+                    }
+                    placeholders += ")";
+
+                    std::string deleteVectorValueQuery = "DELETE FROM VectorValue WHERE vectorIndexId IN " + placeholders + ";";
+                    SQLite::Statement stmtVectorValue(db, deleteVectorValueQuery);
+                    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+                        stmtVectorValue.bind(static_cast<int>(i + 1), vectorIndexIds[i]);
+                    }
+                    stmtVectorValue.exec();
+                }
+
+                // 6. Delete from Vector where id is in vectorIds
+                if (!vectorIds.empty()) {
+                    std::string placeholders = "(";
+                    for (size_t i = 0; i < vectorIds.size(); ++i) {
+                        placeholders += "?";
+                        if (i < vectorIds.size() - 1) placeholders += ",";
+                    }
+                    placeholders += ")";
+
+                    std::string deleteVectorQuery = "DELETE FROM Vector WHERE id IN " + placeholders + ";";
+                    SQLite::Statement stmtVector(db, deleteVectorQuery);
+                    for (size_t i = 0; i < vectorIds.size(); ++i) {
+                        stmtVector.bind(static_cast<int>(i + 1), vectorIds[i]);
+                    }
+                    stmtVector.exec();
+                }
+
+                // 7. Delete from VectorIndex where id is in vectorIndexIds
+                if (!vectorIndexIds.empty()) {
+                    std::string placeholders = "(";
+                    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+                        placeholders += "?";
+                        if (i < vectorIndexIds.size() - 1) placeholders += ",";
+                    }
+                    placeholders += ")";
+
+                    std::string deleteVectorIndexQuery = "DELETE FROM VectorIndex WHERE id IN " + placeholders + ";";
+                    SQLite::Statement stmtVectorIndex(db, deleteVectorIndexQuery);
+                    for (size_t i = 0; i < vectorIndexIds.size(); ++i) {
+                        stmtVectorIndex.bind(static_cast<int>(i + 1), vectorIndexIds[i]);
+                    }
+                    stmtVectorIndex.exec();
+                }
+            }
+
+            // 8. Delete from Version where id is in versionIds
+            if (!versionIds.empty()) {
+                std::string placeholders = "(";
+                for (size_t i = 0; i < versionIds.size(); ++i) {
+                    placeholders += "?";
+                    if (i < versionIds.size() - 1) placeholders += ",";
+                }
+                placeholders += ")";
+
+                std::string deleteVersionQuery = "DELETE FROM Version WHERE id IN " + placeholders + ";";
+                SQLite::Statement stmtVersion(db, deleteVersionQuery);
+                for (size_t i = 0; i < versionIds.size(); ++i) {
+                    stmtVersion.bind(static_cast<int>(i + 1), versionIds[i]);
+                }
+                stmtVersion.exec();
+            }
+        }
+
+        // 9. Finally, delete the Space
+        SQLite::Statement deleteSpaceQuery(db, "DELETE FROM Space WHERE id = ?;");
+        deleteSpaceQuery.bind(1, spaceId);
+        deleteSpaceQuery.exec();
+
+        // Commit transaction
+        db.exec("COMMIT;");
+
+        IdCache::getInstance().clean();
+        HnswIndexLRUCache::getInstance().clean();
+    }
+    catch (const std::exception& e) {
+        // Rollback transaction in case of error
+        db.exec("ROLLBACK;");
+        throw std::runtime_error(std::string("Failed to delete Space with id ") + std::to_string(spaceId) + ": " + e.what());
+    }
 }
 
 };

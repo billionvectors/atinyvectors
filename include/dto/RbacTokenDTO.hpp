@@ -15,6 +15,9 @@ public:
     int getVectorPermission(const std::string& token);
     int getSnapshotPermission(const std::string& token);
     int getSystemPermission(const std::string& token);
+    int getSearchPermission(const std::string& token);
+    int getSecurityPermission(const std::string& token);
+    int getKeyvaluePermission(const std::string& token);
 
     std::string generateJWTToken(int expireDays = 0);
     

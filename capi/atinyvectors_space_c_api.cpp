@@ -23,6 +23,17 @@ void atv_space_dto_create_space(SpaceDTOManager* manager, const char* jsonStr) {
     }
 }
 
+void atv_space_dto_delete_space(SpaceDTOManager* manager, const char* spaceName, const char* jsonStr) {
+    try {
+        auto* cppManager = reinterpret_cast<atinyvectors::dto::SpaceDTOManager*>(manager);
+        cppManager->deleteSpace(spaceName, jsonStr);
+    } catch (const nlohmann::json::exception& e) {
+        atv_create_error_json(ATVErrorCode::JSON_PARSE_ERROR, e.what());
+    } catch (const std::exception& e) {
+        atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());
+    }
+}
+
 char* atv_space_dto_get_by_space_id(SpaceDTOManager* manager, int spaceId) {
     try {
         auto* cppManager = reinterpret_cast<atinyvectors::dto::SpaceDTOManager*>(manager);

@@ -82,10 +82,18 @@ protected:
         version1.is_default = true;
 
         versionId = versionManager.addVersion(version1);
+
+        HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+        QuantizationConfig quantizationConfig;  // Default empty quantization config
+
+        VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", MetricType::L2, 4,
+                                hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
+        indexId = VectorIndexManager::getInstance().addVectorIndex(defaultIndex);
     }
 
     int spaceId;
     int versionId;
+    int indexId;
 };
 
 // Test for adding a new vector
@@ -108,10 +116,22 @@ TEST_F(VectorManagerTest, AddVector) {
 
 // Test for getting a vector by ID
 TEST_F(VectorManagerTest, GetVectorById) {
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
+    VectorIndex sparseIndex(0, versionId, VectorValueType::Sparse, "Default Sparse", MetricType::L2, 4,
+                                hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
+        
+    int sparseIndexId = VectorIndexManager::getInstance().addVectorIndex(sparseIndex);
+
     VectorManager& manager = VectorManager::getInstance();
 
+    std::vector<std::pair<int, float>> sparseDataPairs = { {0, 0.5f}, {2, 0.8f} };
+    SparseData* sparseData = new SparseData(sparseDataPairs);
+    VectorValue vectorValue(0, 0, sparseIndexId, VectorValueType::Sparse, sparseData);
+
     // Update constructor call to include unique_id
-    Vector vector(0, versionId, 0, VectorValueType::Sparse, {}, false); // Provide 0 as unique_id
+    Vector vector(0, versionId, 0, VectorValueType::Sparse, {vectorValue}, false);
     manager.addVector(vector);
 
     auto vectors = manager.getAllVectors();
@@ -123,6 +143,32 @@ TEST_F(VectorManagerTest, GetVectorById) {
     EXPECT_EQ(retrievedVector.id, vectorId);
     EXPECT_EQ(retrievedVector.versionId, versionId);
     EXPECT_EQ(retrievedVector.type, VectorValueType::Sparse);
+
+    // Ensure that the vector contains exactly one VectorValue
+    ASSERT_EQ(retrievedVector.values.size(), 1);
+    const VectorValue& retrievedValue = retrievedVector.values[0];
+
+    // Verify the size of SparseData
+    ASSERT_EQ(retrievedValue.sparseData->size(), sparseData->size());
+
+    // Verify each index and value pair in SparseData
+    for (size_t i = 0; i < sparseData->size(); ++i) {
+        EXPECT_EQ((*retrievedValue.sparseData)[i].first, (*sparseData)[i].first);
+        EXPECT_FLOAT_EQ((*retrievedValue.sparseData)[i].second, (*sparseData)[i].second);
+    }
+
+    // Additional logging for debugging purposes
+    spdlog::debug("Original SparseData:");
+    for (const auto& pair : *sparseData) {
+        spdlog::debug("Index: {}, Value: {}", pair.first, pair.second);
+    }
+
+    spdlog::debug("Retrieved SparseData:");
+    for (const auto& pair : *(retrievedValue.sparseData)) {
+        spdlog::debug("Index: {}, Value: {}", pair.first, pair.second);
+    }
+
+    delete sparseData;
 }
 
 // Test for updating a vector

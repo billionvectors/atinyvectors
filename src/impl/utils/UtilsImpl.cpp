@@ -20,7 +20,7 @@ long getCurrentTimeUTC() {
 std::string getDataPathByVersionUniqueId(const std::string& spaceName, int versionUniqueId) {
     std::string basePath = Config::getInstance().getDataPath();
 
-    std::string fullPath = basePath + spaceName + "/" + std::to_string(versionUniqueId);
+    std::string fullPath = basePath + "/space/" + spaceName + "/" + std::to_string(versionUniqueId);
 
     try {
         if (!std::filesystem::exists(fullPath)) {

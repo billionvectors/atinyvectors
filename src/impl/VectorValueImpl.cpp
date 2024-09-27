@@ -1,5 +1,6 @@
 // VectorValueImpl.cpp
 #include "Vector.hpp"
+#include "IdCache.hpp"
 #include <cstring>
 
 using namespace atinyvectors;
@@ -37,9 +38,12 @@ std::vector<uint8_t> VectorValue::serialize() const {
     if (type == VectorValueType::Dense) {
         blobData = serializeFloatVector(denseData);
     } else if (type == VectorValueType::Sparse) {
-        serializeInteger(blobData, static_cast<int>(sparseIndices.size()));
-        blobData.insert(blobData.end(), (uint8_t*)sparseIndices.data(), (uint8_t*)sparseIndices.data() + sparseIndices.size() * sizeof(int));
-        blobData.insert(blobData.end(), (uint8_t*)sparseValues.data(), (uint8_t*)sparseValues.data() + sparseValues.size() * sizeof(float));
+        serializeInteger(blobData, static_cast<int>(sparseData->size()));
+        for (const auto& pair : *sparseData) {
+            serializeInteger(blobData, pair.first);
+            const uint8_t* floatData = reinterpret_cast<const uint8_t*>(&pair.second);
+            blobData.insert(blobData.end(), floatData, floatData + sizeof(float));
+        }
     } else if (type == VectorValueType::MultiVector) {
         serializeInteger(blobData, size);
         for (const auto& vec : multiVectorData) {
@@ -57,12 +61,19 @@ void VectorValue::deserialize(const std::vector<uint8_t>& blobData) {
     if (type == VectorValueType::Dense) {
         denseData = deserializeFloatVector(blobData, offset, blobData.size() / sizeof(float));
     } else if (type == VectorValueType::Sparse) {
-        int indicesCount = deserializeInteger<int>(blobData.data(), offset);
-        sparseIndices.resize(indicesCount);
-        sparseValues.resize(indicesCount);
-        memcpy(sparseIndices.data(), blobData.data() + offset, indicesCount * sizeof(int));
-        offset += indicesCount * sizeof(int);
-        memcpy(sparseValues.data(), blobData.data() + offset, indicesCount * sizeof(float));
+        if (sparseData == nullptr) {
+            sparseData = IdCache::getInstance().getSparseDataPool(vectorIndexId).allocate();
+        }
+        
+        int pairCount = deserializeInteger<int>(blobData.data(), offset);
+        sparseData->resize(pairCount);
+        for (int i = 0; i < pairCount; ++i) {
+            int index = deserializeInteger<int>(blobData.data(), offset);
+            float value;
+            memcpy(&value, blobData.data() + offset, sizeof(float));
+            offset += sizeof(float);
+            (*sparseData)[i] = std::make_pair(index, value);
+        }
     } else if (type == VectorValueType::MultiVector) {
         size = deserializeInteger<int>(blobData.data(), offset);
         size_t totalFloats = (blobData.size() - offset) / sizeof(float);

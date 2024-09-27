@@ -2,6 +2,7 @@
 #define __ATINYVECTORS_VECTOR_HPP__
 
 #include "ValueType.hpp"
+
 #include <vector>
 #include <string>
 #include <memory>
@@ -19,28 +20,32 @@ public:
     VectorValueType type;
 
     std::vector<float> denseData;
-    std::vector<int> sparseIndices;
-    std::vector<float> sparseValues;
+    SparseData* sparseData;
     int size;
     std::vector<std::vector<float>> multiVectorData;
 
     VectorValue()
-        : id(0), vectorId(0), vectorIndexId(0), type(VectorValueType::Dense), size(0) {}
+        : id(0), vectorId(0), vectorIndexId(0), 
+        type(VectorValueType::Dense), size(0), sparseData(nullptr) {}
 
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type)
-        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), size(0) {}
+        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), 
+        type(type), size(0), sparseData(nullptr) {}
 
     // DenseData
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, const std::vector<float>& denseData)
-        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), denseData(denseData), size(0) {}
+        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), 
+        type(type), denseData(denseData), size(0), sparseData(nullptr) {}
 
     // SparseData
-    VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, const std::vector<int>& sparseIndices, const std::vector<float>& sparseValues)
-        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), sparseIndices(sparseIndices), sparseValues(sparseValues), size(0) {}
+    VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, SparseData* sparseData)
+        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), 
+        type(type), sparseData(sparseData), size(0) {}
 
     // MultiVectorData
     VectorValue(int id, int vectorId, int vectorIndexId, VectorValueType type, int size, const std::vector<std::vector<float>>& multiVectorData)
-        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), type(type), size(size), multiVectorData(multiVectorData) {}
+        : id(id), vectorId(vectorId), vectorIndexId(vectorIndexId), 
+        type(type), size(size), multiVectorData(multiVectorData), sparseData(nullptr) {}
 
     std::vector<uint8_t> serialize() const;
     void deserialize(const std::vector<uint8_t>& blobData);

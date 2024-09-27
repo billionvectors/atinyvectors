@@ -41,7 +41,7 @@ protected:
         // Create the index manager with a specific MetricType (e.g., L2)
         HnswConfig config = HnswConfig(16, 100);
 
-        indexManager = std::make_unique<HnswIndexManager>(indexFileName, vectorIndexId, dim, maxElements, MetricType::L2, config);
+        indexManager = std::make_unique<HnswIndexManager>(indexFileName, vectorIndexId, dim, maxElements, MetricType::L2, VectorValueType::Dense, config);
     }
 
     void TearDown() override {

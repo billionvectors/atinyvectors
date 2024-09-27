@@ -132,7 +132,13 @@ int VectorManager::addVector(Vector& vector) {
                 if (value.type == VectorValueType::Dense) {
                     hnswManager->addVectorData(value.denseData, vector.unique_id);
                 } else if (value.type == VectorValueType::Sparse) {
-                    hnswManager->addVectorData(value.sparseValues, vector.unique_id);
+                    
+                    spdlog::debug("Original SparseData:");
+                    for (const auto& pair : *value.sparseData) {
+                        spdlog::debug("Index: {}, Value: {}", pair.first, pair.second);
+                    }
+                    
+                    hnswManager->addVectorData(value.sparseData, vector.unique_id);
                 } else if (value.type == VectorValueType::MultiVector) {
                     for (const auto& mvData : value.multiVectorData) {
                         hnswManager->addVectorData(mvData, vector.unique_id);

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "dto/SpaceDTO.hpp"
+#include "dto/VectorDTO.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
@@ -305,7 +306,7 @@ TEST_F(SpaceDTOManagerTest, GetListsTest) {
 TEST_F(SpaceDTOManagerTest, GetBySpaceNameTest) {
     // Create a space
     std::string inputJson = R"({
-        "name": "test_space",
+        "name": "GetBySpaceNameTest",
         "dimension": 128,
         "metric": "cosine"
     })";
@@ -314,11 +315,58 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceNameTest) {
     manager.createSpace(inputJson);
 
     // Retrieve the space by name
-    json spaceJson = manager.getBySpaceName("test_space");
+    json spaceJson = manager.getBySpaceName("GetBySpaceNameTest");
 
     // Validate the JSON output
     ASSERT_TRUE(spaceJson.contains("spaceId"));
-    ASSERT_EQ(spaceJson["name"], "test_space");
+    ASSERT_EQ(spaceJson["name"], "GetBySpaceNameTest");
     ASSERT_TRUE(spaceJson.contains("created_time_utc"));
     ASSERT_TRUE(spaceJson.contains("updated_time_utc"));
+}
+
+TEST_F(SpaceDTOManagerTest, DeleteTest) {
+    // Set up Space, Version, and VectorIndex for search
+    Space defaultSpace(0, "DeleteTest", "Default Space Description", 0, 0);
+    int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
+
+    // Use versionUniqueId as 1 for the test case
+    Version defaultVersion(0, spaceId, 1, "Default Version", "Automatically created default version", "v1", 0, 0, true);
+    int versionId = VersionManager::getInstance().addVersion(defaultVersion);
+
+    // Cache the versionId using IdCache
+    IdCache::getInstance().getVersionId("DeleteTest", 1); // Assuming this populates the cache
+
+    // Create default HNSW and Quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+    QuantizationConfig quantizationConfig;  // Default empty quantization config
+
+    // Create and add a default VectorIndex
+    VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", MetricType::L2, 4,
+                             hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
+    int indexId = VectorIndexManager::getInstance().addVectorIndex(defaultIndex);
+
+    // Insert some vectors for search
+    std::string vectorDataJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"category": "A"}
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"category": "B"}
+            }
+        ]
+    })";
+
+    VectorDTOManager vectorDTOManager;
+    vectorDTOManager.upsert("DeleteTest", 1, vectorDataJson);
+
+    SpaceDTOManager spaceDTOManager;
+    spaceDTOManager.deleteSpace("DeleteTest", "{}");
+    
+    EXPECT_THROW(SpaceManager::getInstance().getSpaceById(spaceId), std::runtime_error);
+    EXPECT_THROW(VersionManager::getInstance().getVersionById(versionId), std::runtime_error);
 }

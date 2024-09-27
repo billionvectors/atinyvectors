@@ -232,6 +232,8 @@ SnapshotManager& SnapshotManager::getInstance() {
 }
 
 int SnapshotManager::createSnapshot(const std::vector<std::pair<std::string, int>>& versionInfoList, const std::string& fileName, const std::string& metaDirectory) {
+    cleanupStorage();
+
     auto& cache = IdCache::getInstance();
 
     std::string dbBackupFileName = "backup_" + std::to_string(generateRandomNumber()) + ".db";
@@ -354,6 +356,36 @@ void SnapshotManager::deleteSnapshot(int id) {
     deleteQuery.exec();
 
     transaction.commit();
+}
+
+void SnapshotManager::cleanupStorage() {
+    std::string rootPath = Config::getInstance().getDataPath() + "/space/";
+
+    if (!fs::exists(rootPath) || !fs::is_directory(rootPath)) {
+        spdlog::warn("Root path '{}' does not exist or is not a directory.", rootPath);
+        return;
+    }
+
+    for (const auto& entry : fs::directory_iterator(rootPath)) {
+        if (entry.is_directory()) {
+            std::string spaceName = entry.path().filename().string();
+            spdlog::debug("Checking spaceName: {}", spaceName);
+
+            try {
+                bool exists = IdCache::getInstance().getSpaceExists(spaceName);
+
+                if (!exists) {
+                    fs::remove_all(entry.path());
+                    spdlog::info("Deleted unused space directory: {}", entry.path().string());
+                }
+            }
+            catch (const std::exception& e) {
+                spdlog::error("Error while checking or deleting directory '{}': {}", entry.path().string(), e.what());
+            }
+        }
+    }
+
+    spdlog::info("Completed cleanup of storage directories.");
 }
 
 };

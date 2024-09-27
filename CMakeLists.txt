@@ -78,6 +78,7 @@ add_library(${PROJECT_NAME} SHARED
 
   src/impl/algo/HnswIndexLRUCacheImpl.cpp
   src/impl/algo/HnswIndexManagerImpl.cpp
+  src/impl/algo/SparseSpaceImpl.cpp
 
   src/impl/dto/RbacTokenDTOImpl.cpp 
   src/impl/dto/SearchDTOImpl.cpp 
@@ -94,6 +95,7 @@ add_library(${PROJECT_NAME} SHARED
   src/impl/RbacTokenImpl.cpp 
   src/impl/SnapshotImpl.cpp
   src/impl/SpaceImpl.cpp
+  src/impl/SparseDataPoolImpl.cpp
   src/impl/VectorIndexImpl.cpp
   src/impl/VectorManagerImpl.cpp
   src/impl/VectorMetadataImpl.cpp
@@ -110,6 +112,8 @@ add_executable(test_${PROJECT_NAME}
   tests/algo/HnswIndexLRUCacheTest.cpp
   tests/algo/HnswIndexManagerTest.cpp
   tests/algo/HnswLibTest.cpp
+  tests/algo/SparseIpSpaceTest.cpp
+  tests/algo/SparseL2SpaceTest.cpp
 
   tests/dto/RbacTokenDTOTest.cpp
   tests/dto/SearchDTOTest.cpp
@@ -140,6 +144,7 @@ add_executable(test_${PROJECT_NAME}
 
   src/impl/algo/HnswIndexLRUCacheImpl.cpp
   src/impl/algo/HnswIndexManagerImpl.cpp
+  src/impl/algo/SparseSpaceImpl.cpp
 
   src/impl/dto/RbacTokenDTOImpl.cpp 
   src/impl/dto/SearchDTOImpl.cpp 
@@ -156,6 +161,7 @@ add_executable(test_${PROJECT_NAME}
   src/impl/RbacTokenImpl.cpp 
   src/impl/SnapshotImpl.cpp
   src/impl/SpaceImpl.cpp
+  src/impl/SparseDataPoolImpl.cpp
   src/impl/VectorIndexImpl.cpp
   src/impl/VectorManagerImpl.cpp
   src/impl/VectorMetadataImpl.cpp

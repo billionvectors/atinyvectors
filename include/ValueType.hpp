@@ -5,6 +5,8 @@
 
 namespace atinyvectors {
 
+typedef std::vector<std::pair<int, float>> SparseData;
+
 enum class VectorValueType {
     Dense,
     Sparse,

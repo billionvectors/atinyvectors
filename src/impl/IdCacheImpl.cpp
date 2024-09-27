@@ -148,6 +148,7 @@ void IdCache::clean() {
     std::lock_guard<std::mutex> lock1(cacheMutex);
     std::lock_guard<std::mutex> lock2(spaceNameCacheMutex);
     std::lock_guard<std::mutex> lock3(vectorIndexCacheMutex);
+    std::lock_guard<std::mutex> lock4(spaceExistsCacheMutex);
 
     spdlog::debug("Clearing all caches.");
 
@@ -158,14 +159,18 @@ void IdCache::clean() {
     vectorIndexForwardCache.clear();
     vectorIndexReverseCache.clear();
     rbacTokenCache.clear();
+    sparseDataPoolByIndexIdCache.clear();
+    spaceExistsCache.clear();
 }
 
 void IdCache::clearSpaceNameCache() {
     std::lock_guard<std::mutex> lock(cacheMutex);
+    std::lock_guard<std::mutex> lock2(spaceExistsCacheMutex);
 
     spdlog::debug("Clearing spaceName cache.");
 
     spaceNameCache.clear();
+    spaceExistsCache.clear();
 }
 
 int IdCache::fetchFromDb(const std::string& spaceName, int versionUniqueId) {
@@ -239,6 +244,59 @@ RbacToken IdCache::fetchRbacTokenFromManager(const std::string& token) {
     } catch (const std::runtime_error& e) {
         spdlog::error("Failed to fetch token from RbacTokenManager: {}", e.what());
         throw;
+    }
+}
+
+SparseDataPool& IdCache::getSparseDataPool(int vectorIndexId) {
+    auto it = sparseDataPoolByIndexIdCache.find(vectorIndexId);
+
+    if (it != sparseDataPoolByIndexIdCache.end()) {
+        return *(it->second);
+    } else {
+        auto pool = std::make_shared<SparseDataPool>();
+        sparseDataPoolByIndexIdCache[vectorIndexId] = pool;
+
+        return *pool;
+    }
+}
+
+bool IdCache::getSpaceExists(const std::string& spaceName) {
+    {
+        std::lock_guard<std::mutex> lock(spaceExistsCacheMutex);
+        auto it = spaceExistsCache.find(spaceName);
+        if (it != spaceExistsCache.end()) {
+            spdlog::debug("Cache hit for spaceExists: {}", spaceName);
+            return it->second;
+        }
+    }
+
+    bool exists = fetchSpaceExistsFromDb(spaceName);
+    {
+        std::lock_guard<std::mutex> lock(spaceExistsCacheMutex);
+        spaceExistsCache[spaceName] = exists;
+        spdlog::debug("Cache updated for spaceExists: {} = {}", spaceName, exists);
+    }
+
+    return exists;
+}
+
+
+bool IdCache::fetchSpaceExistsFromDb(const std::string& spaceName) {
+    try {
+        auto& db = DatabaseManager::getInstance().getDatabase();
+        SQLite::Statement query(db, "SELECT 1 FROM Space WHERE name = ? LIMIT 1");
+        query.bind(1, spaceName);
+
+        if (query.executeStep()) {
+            spdlog::debug("Space exists in DB: {}", spaceName);
+            return true;
+        } else {
+            spdlog::debug("Space does not exist in DB: {}", spaceName);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        spdlog::error("Error checking space existence for {}: {}", spaceName, e.what());
+        return false;
     }
 }
 

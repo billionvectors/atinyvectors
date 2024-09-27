@@ -68,11 +68,11 @@ protected:
                                  hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
         vectorIndexIds[1] = VectorIndexManager::getInstance().addVectorIndex(vectorIndex2);
 
-        VectorIndex vectorIndex3(0, versionId, VectorValueType::Combined, "Vector Index 3", MetricType::Cosine, dim,
+        VectorIndex vectorIndex3(0, versionId, VectorValueType::Dense, "Vector Index 3", MetricType::Cosine, dim,
                                  hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
         vectorIndexIds[2] = VectorIndexManager::getInstance().addVectorIndex(vectorIndex3);
 
-        VectorIndex vectorIndex4(0, versionId, VectorValueType::Combined, "Vector Index 4", MetricType::Cosine, dim,
+        VectorIndex vectorIndex4(0, versionId, VectorValueType::Sparse, "Vector Index 4", MetricType::Cosine, dim,
                                  hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
         vectorIndexIds[3] = VectorIndexManager::getInstance().addVectorIndex(vectorIndex4);
     }

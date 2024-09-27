@@ -54,17 +54,19 @@ std::shared_ptr<HnswIndexManager> HnswIndexLRUCache::get(int vectorIndexId) {
     }
 
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT metricType, dimension, hnswConfigJson FROM VectorIndex WHERE id = ?");
+    SQLite::Statement query(db, "SELECT metricType, dimension, vectorValueType, hnswConfigJson FROM VectorIndex WHERE id = ?");
     query.bind(1, vectorIndexId);
 
     MetricType metric = MetricType::L2;  // Default metric
+    VectorValueType vectorValueType = VectorValueType::Dense;
     int dim = 0;
     std::string hnswConfigJson;
 
     if (query.executeStep()) {
         int metricType = query.getColumn(0).getInt();
         dim = query.getColumn(1).getInt();
-        hnswConfigJson = query.getColumn(2).getString();
+        vectorValueType = static_cast<VectorValueType>(query.getColumn(2).getInt());
+        hnswConfigJson = query.getColumn(3).getString();
 
         metric = static_cast<MetricType>(metricType);
         spdlog::debug("Using {} metric for vectorIndexId: {}", metricType, vectorIndexId);
@@ -95,8 +97,8 @@ std::shared_ptr<HnswIndexManager> HnswIndexLRUCache::get(int vectorIndexId) {
 
     auto spaceNameCache = IdCache::getInstance().getSpaceNameAndVersionUniqueIdByVectorIndexId(vectorIndexId);
     std::string indexFileName = getIndexFilePath(spaceNameCache.first, spaceNameCache.second, vectorIndexId);
-    
-    auto manager = std::make_shared<HnswIndexManager>(indexFileName, vectorIndexId, dim, maxElements, metric, hnswConfig);
+    auto manager = std::make_shared<HnswIndexManager>(
+        indexFileName, vectorIndexId, dim, maxElements, metric, vectorValueType, hnswConfig);
     cacheList_.push_front(vectorIndexId);
     cacheMap_[vectorIndexId] = {manager, cacheList_.begin()};
 

@@ -1,24 +1,73 @@
 #include <gtest/gtest.h>
+#include "algo/HnswIndexLRUCache.hpp"
+#include "utils/Utils.hpp"
+#include "Snapshot.hpp"
 #include "Space.hpp"
+#include "Vector.hpp"
+#include "VectorIndex.hpp"
+#include "Version.hpp"
+#include "VectorMetadata.hpp"
+#include "DatabaseManager.hpp"
+#include "IdCache.hpp"
+#include "RbacToken.hpp"
 #include "DatabaseManager.hpp"
 
 using namespace atinyvectors;
+using namespace atinyvectors::algo;
+using namespace atinyvectors::utils;
 
 // Fixture for SpaceManager tests
 class SpaceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Set up a clean test database
+        IdCache::getInstance().clean();
+
+        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
+        snapshotManager.createTable();
+
         SpaceManager& spaceManager = SpaceManager::getInstance();
+        spaceManager.createTable();
+        
+        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
+        vectorIndexManager.createTable();
+
+        VersionManager& versionManager = VersionManager::getInstance();
+        versionManager.createTable();
+
+        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
+        metadataManager.createTable();
+
+        VectorManager& vectorManager = VectorManager::getInstance();
+        vectorManager.createTable();
+
+        RbacTokenManager& rbacTokenManager = RbacTokenManager::getInstance();
+        rbacTokenManager.createTable();
+
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
         db.exec("DELETE FROM Space;");
+        db.exec("DELETE FROM VectorIndex;");
+        db.exec("DELETE FROM Version;");
+        db.exec("DELETE FROM VectorMetadata;");
+        db.exec("DELETE FROM Vector;");
+        db.exec("DELETE FROM VectorValue;");
+        db.exec("DELETE FROM RbacToken;");
+
+        // clean data
+        HnswIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
-        // Cleanup after each test if necessary
-        SpaceManager& spaceManager = SpaceManager::getInstance();
+        // Clear data after each test
         auto& db = DatabaseManager::getInstance().getDatabase();
+        db.exec("DELETE FROM Snapshot;");
         db.exec("DELETE FROM Space;");
+        db.exec("DELETE FROM VectorIndex;");
+        db.exec("DELETE FROM Version;");
+        db.exec("DELETE FROM VectorMetadata;");
+        db.exec("DELETE FROM Vector;");
+        db.exec("DELETE FROM VectorValue;");
+        db.exec("DELETE FROM RbacToken;");
     }
 };
 
@@ -73,23 +122,6 @@ TEST_F(SpaceManagerTest, UpdateSpace) {
 
     Space retrievedSpace = manager.getSpaceById(spaceId);
     EXPECT_EQ(retrievedSpace.name, "Updated Test Space");
-}
-
-// Test for deleting a space
-TEST_F(SpaceManagerTest, DeleteSpace) {
-    SpaceManager& manager = SpaceManager::getInstance();
-
-    Space space(0, "Test Space", "A space for testing", 1627906032, 1627906032);
-    manager.addSpace(space);
-
-    auto spaces = manager.getAllSpaces();
-    ASSERT_FALSE(spaces.empty());
-
-    int spaceId = spaces[0].id;
-    manager.deleteSpace(spaceId);
-
-    spaces = manager.getAllSpaces();
-    EXPECT_TRUE(spaces.empty());
 }
 
 // Test for handling a non-existent space

@@ -267,6 +267,25 @@ void SpaceDTOManager::createSpace(const std::string& jsonStr) {
     processIndexesConfiguration(parsedJson, versionId);
 }
 
+void SpaceDTOManager::deleteSpace(const std::string& spaceName, const std::string& jsonStr) {
+    spdlog::info("Starting deleteSpace for spaceName: {}", spaceName);
+
+    try {
+        auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
+        if (space.id <= 0) {
+            spdlog::error("Space with name '{}' not found.", spaceName);
+            throw std::runtime_error("Space not found.");
+        }
+
+        json parsedJson = json::parse(jsonStr);
+
+        SpaceManager::getInstance().deleteSpace(space.id);
+    } catch (const std::exception& e) {
+        spdlog::error("Exception occurred in getBySpaceName for spaceName: {}. Error: {}", spaceName, e.what());
+        throw;
+    }
+}
+
 nlohmann::json SpaceDTOManager::getBySpaceId(int spaceId) {
     spdlog::info("Starting getBySpaceId for spaceId: {}", spaceId);
 

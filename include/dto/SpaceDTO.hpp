@@ -16,6 +16,8 @@ namespace dto
 class SpaceDTOManager {
 public:
     void createSpace(const std::string& jsonStr);
+    void deleteSpace(const std::string& spaceName, const std::string& jsonStr);
+    
     nlohmann::json getBySpaceId(int spaceId);
     nlohmann::json getBySpaceName(const std::string& spaceName);
     nlohmann::json getLists();

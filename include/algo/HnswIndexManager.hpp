@@ -14,18 +14,26 @@ namespace algo
 
 class HnswIndexManager {
 public:
-    HnswIndexManager(const std::string& indexFileName, int vectorIndexId, int dim, int maxElements, MetricType metric, HnswConfig& hnswConfig);
+    HnswIndexManager(
+        const std::string& indexFileName, 
+        int vectorIndexId, int dim, int maxElements, 
+        MetricType metric, VectorValueType valueType, HnswConfig& hnswConfig);    
     ~HnswIndexManager();
 
     void addVectorData(const std::vector<float>& vectorData, int vectorId);
+    std::vector<std::pair<float, hnswlib::labeltype>> search(const std::vector<float>& queryVector, size_t k);
+
+    void addVectorData(SparseData* sparseData, int vectorId);
+    std::vector<std::pair<float, hnswlib::labeltype>> search(SparseData* sparseQueryVector, size_t k);
+
     void restoreVectorsToIndex();
     void saveIndex();
     void loadIndex();
-    std::vector<std::pair<float, hnswlib::labeltype>> search(const std::vector<float>& queryVector, size_t k);
+    
     bool indexNeedsUpdate();
 
 private:
-    void setSpace(MetricType metric);
+    void setSpace(VectorValueType valueType, MetricType metric);
     void setOptimizerSettings();
 
     std::vector<float> deserializeVector(const std::string& blobData);
@@ -33,6 +41,7 @@ private:
 public:
     std::string indexFileName;
     int vectorIndexId;
+    VectorValueType valueType;
     int dim;
     int maxElements;
     hnswlib::HierarchicalNSW<float>* index;

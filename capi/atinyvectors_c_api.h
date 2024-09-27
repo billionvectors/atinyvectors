@@ -23,6 +23,7 @@ void atv_space_dto_create_space(SpaceDTOManager* manager, const char* jsonStr);
 char* atv_space_dto_get_by_space_id(SpaceDTOManager* manager, int spaceId);
 char* atv_space_dto_get_by_space_name(SpaceDTOManager* manager, const char* spaceName);
 char* atv_space_dto_get_lists(SpaceDTOManager* manager);
+void atv_space_dto_delete_space(SpaceDTOManager* manager, const char* spaceName, const char* jsonStr);
 
 // C API for VersionDTOManager
 VersionDTOManager* atv_version_dto_manager_new();
@@ -60,6 +61,9 @@ int atv_rbac_token_get_space_permission(RbacTokenDTOManager* manager, const char
 int atv_rbac_token_get_version_permission(RbacTokenDTOManager* manager, const char* token);
 int atv_rbac_token_get_vector_permission(RbacTokenDTOManager* manager, const char* token);
 int atv_rbac_token_get_snapshot_permission(RbacTokenDTOManager* manager, const char* token);
+int atv_rbac_token_get_search_permission(RbacTokenDTOManager* manager, const char* token);
+int atv_rbac_token_get_security_permission(RbacTokenDTOManager* manager, const char* token);
+int atv_rbac_token_get_keyvalue_permission(RbacTokenDTOManager* manager, const char* token);
 char* atv_rbac_token_new_token(RbacTokenDTOManager* manager, const char* jsonStr, const char* token);
 char* atv_rbac_token_list_tokens(RbacTokenDTOManager* manager);
 void atv_rbac_token_delete_token(RbacTokenDTOManager* manager, const char* token);

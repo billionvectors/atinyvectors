@@ -43,6 +43,7 @@ public:
     std::vector<Snapshot> getAllSnapshots();
     Snapshot getSnapshotById(int id);
     void deleteSnapshot(int id);
+    void cleanupStorage();
 };
 
 }
