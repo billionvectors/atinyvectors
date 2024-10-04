@@ -3,10 +3,12 @@
 #include "algo/SparseL2Space.hpp"
 #include "Config.hpp"
 #include "IdCache.hpp"
-#include "spdlog/spdlog.h"
+#include "Vector.hpp"
 #include "DatabaseManager.hpp"
 #include <fstream>
+#include <cmath>
 #include "nlohmann/json.hpp"
+#include "spdlog/spdlog.h"
 
 namespace atinyvectors
 {
@@ -55,8 +57,8 @@ void HnswIndexManager::setSpace(VectorValueType valueType, MetricType metric) {
             space = new hnswlib::InnerProductSpace(dim);  // Inner product space for dense vectors
             spdlog::debug("Space set successfully with VectorValueType: Dense, Metric: Inner Product, dim={}", dim);
         } else if (metric == MetricType::Cosine) {
-            // Cosine similarity can be approximated using L2 normalization.
-            space = new hnswlib::L2Space(dim);  // Cosine similarity approximated by L2 normalized vectors
+            // Cosine similarity can be approximated using InnorProduct normalization.
+            space = new hnswlib::InnerProductSpace(dim);  // Cosine similarity approximated by InnorProduct normalized vectors
             spdlog::debug("Space set successfully with VectorValueType: Dense, Metric: Cosine, dim={}", dim);
         } else {
             spdlog::error("Unknown metric type provided for Dense vectors");
@@ -72,7 +74,7 @@ void HnswIndexManager::setSpace(VectorValueType valueType, MetricType metric) {
             space = new SparseIpSpace(dim);  // Hypothetical Sparse Inner Product space
             spdlog::debug("Space set successfully with VectorValueType: Sparse, Metric: Inner Product, dim={}", dim);
         } else if (metric == MetricType::Cosine) {
-            space = new SparseL2Space(dim);  // Cosine similarity approximated by L2 normalized vectors
+            space = new SparseIpSpace(dim);  // Cosine similarity approximated by Inner Product normalized vectors
             spdlog::debug("Space set successfully with VectorValueType: Sparse, Metric: Cosine, dim={}", dim);
         } else {
             spdlog::error("Unknown metric type provided for Sparse vectors");
@@ -82,6 +84,42 @@ void HnswIndexManager::setSpace(VectorValueType valueType, MetricType metric) {
     else {
         spdlog::error("Unsupported VectorValueType provided");
         throw std::invalid_argument("Unsupported VectorValueType");
+    }
+}
+
+std::vector<float> HnswIndexManager::normalizeVector(const std::vector<float>& vector) {
+    float norm = 0.0f;
+    for (float val : vector) {
+        norm += val * val;
+    }
+    norm = std::sqrt(norm);
+    if (norm == 0.0f) {
+        return vector;
+    }
+
+    std::vector<float> normalized(vector.size());
+    for (size_t i = 0; i < vector.size(); ++i) {
+        normalized[i] = vector[i] / norm;
+    }
+    return normalized;
+}
+
+void HnswIndexManager::normalizeSparseVector(SparseData* sparseVector) {
+    if (sparseVector == nullptr || sparseVector->empty()) {
+        return;
+    }
+
+    float norm = 0.0f;
+    for (const auto& [idx, val] : *sparseVector) {
+        norm += val * val;
+    }
+    norm = std::sqrt(norm);
+    if (norm == 0.0f) {
+        return;
+    }
+
+    for (auto& [idx, val] : *sparseVector) {
+        val /= norm;
     }
 }
 
@@ -97,26 +135,42 @@ void HnswIndexManager::restoreVectorsToIndex() {
 
     auto& db = DatabaseManager::getInstance().getDatabase();
     
-    spdlog::debug("Loading vectors from database for vectorIndexId: {}", vectorIndexId);
     SQLite::Statement query(db, 
-        "SELECT V.unique_id, VV.data "
+        "SELECT V.unique_id, VV.type, VV.data "
         "FROM VectorValue VV "
         "JOIN Vector V ON VV.vectorId = V.id "
         "WHERE VV.vectorIndexId = ? AND V.deleted = 0");
     query.bind(1, vectorIndexId);
 
     while (query.executeStep()) {
-        int unique_id = query.getColumn(0).getInt();  // Get the unique_id from the Vector table
-        const std::string& blobData = query.getColumn(1).getString();
-        std::vector<float> vectorData = deserializeVector(blobData);
+        int unique_id = query.getColumn(0).getInt();
+        int typeValue = query.getColumn(1).getInt();
+        const void* blobDataPtr = query.getColumn(2).getBlob();
+        int blobSize = query.getColumn(2).getBytes();
 
-        if (index == nullptr) {
-            spdlog::error("Index is not initialized before adding vectorData.");
-            throw std::runtime_error("Index not initialized.");
+        std::vector<uint8_t> blobData(reinterpret_cast<const uint8_t*>(blobDataPtr), 
+                                     reinterpret_cast<const uint8_t*>(blobDataPtr) + blobSize);
+
+        VectorValue vectorValue;
+        vectorValue.type = static_cast<VectorValueType>(typeValue);
+        vectorValue.vectorIndexId = vectorIndexId;
+        vectorValue.deserialize(blobData);
+
+        if (vectorValue.type == VectorValueType::Dense) {
+            if (metricType == MetricType::Cosine) {
+                vectorValue.denseData = normalizeVector(vectorValue.denseData);
+            }
+
+            index->addPoint(vectorValue.denseData.data(), unique_id);
+        } else if (vectorValue.type == VectorValueType::Sparse) {
+            if (metricType == MetricType::Cosine) {
+                normalizeSparseVector(vectorValue.sparseData);
+            }
+
+            index->addPoint(vectorValue.sparseData, unique_id);
+        } else {
+            spdlog::debug("Unsupported VectorValueType: {}", static_cast<int>(vectorValue.type));
         }
-
-        spdlog::debug("[fromDB] Adding vector data with unique ID: {} to index", unique_id);
-        index->addPoint(vectorData.data(), unique_id);  // Use unique_id as the identifier
     }
 
     saveIndex();
@@ -153,6 +207,7 @@ void HnswIndexManager::setOptimizerSettings() {
         MetricType metricType = static_cast<MetricType>(metricTypeValue);
         VectorValueType vectorValueType = static_cast<VectorValueType>(vectorValueTypeValue);
         this->valueType = vectorValueType;  // Update the member variable
+        this->metricType = metricType;
 
         // set new space with the updated valueType and metricType
         setSpace(vectorValueType, metricType);
@@ -177,13 +232,20 @@ void HnswIndexManager::addVectorData(const std::vector<float>& vectorData, int v
         loadIndex();
     }
 
-    spdlog::debug("Adding vector to HNSW index for vectorId: {}", vectorId);
-    index->addPoint(vectorData.data(), vectorId);
+    if (metricType == MetricType::Cosine) {
+        index->addPoint(normalizeVector(vectorData).data(), vectorId);
+    } else {
+        index->addPoint(vectorData.data(), vectorId);
+    }
 }
 
 void HnswIndexManager::addVectorData(SparseData* vectorData, int vectorId) {
     if (!index || indexNeedsUpdate()) {
         loadIndex();
+    }
+
+    if (metricType == MetricType::Cosine) {
+        normalizeSparseVector(vectorData);
     }
 
     spdlog::debug("Adding vector to HNSW index for vectorId: {}", vectorId);
@@ -229,28 +291,32 @@ void HnswIndexManager::saveIndex() {
     }
 }
 
-std::vector<float> HnswIndexManager::deserializeVector(const std::string& blobData) {
-    std::vector<float> vectorData(blobData.size() / sizeof(float));
-    memcpy(vectorData.data(), blobData.data(), blobData.size());
-    return vectorData;
-}
-
 std::vector<std::pair<float, hnswlib::labeltype>> HnswIndexManager::search(const std::vector<float>& queryVector, size_t k) {
     if (!index || indexNeedsUpdate()) {
         loadIndex();
     }
 
     spdlog::debug("Searching HNSW index with k = {}", k);
-    return index->searchKnnCloserFirst(queryVector.data(), k);
+
+    if (metricType == MetricType::Cosine) {
+        return index->searchKnnCloserFirst(normalizeVector(queryVector).data(), k);
+    }
+    else {
+        return index->searchKnnCloserFirst(queryVector.data(), k);
+    }
 }
 
-// New search function for Sparse Vectors
 std::vector<std::pair<float, hnswlib::labeltype>> HnswIndexManager::search(SparseData* sparseQueryVector, size_t k) {
     if (!index || indexNeedsUpdate()) {
         loadIndex();
     }
 
     spdlog::debug("Searching HNSW index with Sparse Vector and k = {}", k);
+
+    if (metricType == MetricType::Cosine) {
+        normalizeSparseVector(sparseQueryVector);
+    }
+
     return index->searchKnnCloserFirst(static_cast<const void*>(sparseQueryVector), k);
 }
 

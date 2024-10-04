@@ -2,6 +2,8 @@
 
 atinyvectors is a high-performance vector search engine designed for efficient indexing and querying of large-scale vector data. It supports both dense and sparse vector types and allows users to manage spaces, versions, and vectors with customizable indexing configurations.
 
+This project is a library project. If you want to obtain an executable binary, please refer to [asimplevectors](https://github.com/billionvectors/asimplevectors).
+
 ## Features
 
 - **Efficient vector search** using HNSW (Hierarchical Navigable Small World) graph.
@@ -16,6 +18,10 @@ atinyvectors is a high-performance vector search engine designed for efficient i
 - Clang (or other C++ compiler)
 - GoogleTest for unit testing
 - SQLiteCpp, libzip and nlohmann/json libraries
+
+## Docs
+
+For detailed development guidelines and documentation, please refer to the official guide at [https://docs.asimplevectors.com/](https://docs.asimplevectors.com/).
 
 ## Building the Project
 
@@ -72,5 +78,5 @@ A C API is provided for integrating with Rust or other programming languages. Yo
 ### Contributing
 Contributions are welcome! Please open an issue or submit a pull request if you would like to contribute to atinyvectors.
 
-### License
-This project is licensed under the LGPL License - see the LICENSE file for details.
+## License
+For details, please refer to the `LICENSE` file.

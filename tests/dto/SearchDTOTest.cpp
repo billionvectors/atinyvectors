@@ -364,3 +364,128 @@ TEST_F(SearchDTOTest, VectorSearchWithJSONQueryUsingDefaultVersion) {
     EXPECT_EQ(metadataList2[0].key, "category");
     EXPECT_EQ(metadataList2[0].value, "B");
 }
+
+TEST_F(SearchDTOTest, VectorSearchWithCosineMetric) {
+    // Set up Space, Version, and VectorIndex for Cosine search
+    Space cosineSpace(0, "VectorSearchWithCosineMetric", "Space for Cosine metric", 0, 0);
+    int cosineSpaceId = SpaceManager::getInstance().addSpace(cosineSpace);
+
+    // Use versionUniqueId as 1 for the Cosine test case
+    Version cosineVersion(0, cosineSpaceId, 1, "Cosine Version", "Version for Cosine metric", "v1", 0, 0, true);
+    int cosineVersionId = VersionManager::getInstance().addVersion(cosineVersion);
+
+    // Cache the versionId using IdCache
+    IdCache::getInstance().getVersionId("VectorSearchWithCosineMetric", 1); // Assuming this populates the cache
+
+    // Create HNSW and Quantization configs for Cosine metric
+    HnswConfig hnswConfigCosine(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+    QuantizationConfig quantizationConfigCosine;  // Default empty quantization config
+
+    // Create and add a VectorIndex with Cosine metric and Dense vectors
+    VectorIndex cosineIndex(0, cosineVersionId, VectorValueType::Dense, "Cosine Index", MetricType::Cosine, 4,
+                            hnswConfigCosine.toJson().dump(), quantizationConfigCosine.toJson().dump(), 0, 0, true);
+    int cosineIndexId = VectorIndexManager::getInstance().addVectorIndex(cosineIndex);
+
+    // Insert 5 vectors for Cosine search
+    std::string vectorDataCosineJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [1.0, 0.0, 0.0, 0.0],
+                "metadata": {"category": "X"}
+            },
+            {
+                "id": 2,
+                "data": [0.0, 1.0, 0.0, 0.0],
+                "metadata": {"category": "Y"}
+            },
+            {
+                "id": 3,
+                "data": [-1.0, 0.0, 0.0, 0.0],
+                "metadata": {"category": "Z"}
+            },
+            {
+                "id": 4,
+                "data": [1.0, 1.0, 0.0, 0.0],
+                "metadata": {"category": "W"}
+            },
+            {
+                "id": 5,
+                "data": [1.0, 0.0, 1.0, 0.0],
+                "metadata": {"category": "V"}
+            }
+        ]
+    })";
+
+    VectorDTOManager vectorDTOManagerCosine;
+    vectorDTOManagerCosine.upsert("VectorSearchWithCosineMetric", 1, vectorDataCosineJson);
+
+    // Prepare search query JSON for Cosine metric
+    std::string queryCosineJsonStr = R"({
+        "vector": [1.0, 0.0, 0.0, 0.0]
+    })";
+
+    // Perform the search using SearchDTOManager
+    SearchDTOManager searchManagerCosine;
+    auto searchResultsCosine = searchManagerCosine.search("VectorSearchWithCosineMetric", 1, queryCosineJsonStr, 5);
+
+    // Log distances and result metadata for debugging
+    spdlog::info("Cosine Search results size: {}", searchResultsCosine.size());
+    for (const auto& result : searchResultsCosine) {
+        spdlog::info("Distance (1 - Cosine Similarity): {}, ID: {}", result.first, result.second);
+    }
+
+    // Validate that five results are returned
+    ASSERT_EQ(searchResultsCosine.size(), 5);
+
+    // Define expected distances based on 1 - Cosine Similarity
+    // Vector 1: same as query -> 0.0
+    // Vector 2: orthogonal -> 1.0
+    // Vector 3: opposite -> 2.0
+    // Vector 4: 45 degrees -> 1 - (cos(45°)) = 1 - (1/sqrt(2)) ≈ 0.292893
+    // Vector 5: 45 degrees in another plane -> 1 - (cos(45°)) = 1 - (1/sqrt(2)) ≈ 0.292893
+
+    // Create a map from ID to expected distance
+    std::map<int, double> expectedDistances = {
+        {1, 0.0},
+        {2, 1.0},
+        {3, 2.0},
+        {4, 1.0 - (1.0 / std::sqrt(2.0))}, // ≈0.292893
+        {5, 1.0 - (1.0 / std::sqrt(2.0))}  // ≈0.292893
+    };
+
+    // Iterate through search results and validate
+    for (const auto& result : searchResultsCosine) {
+        float distance = result.first;
+        int id = result.second;
+
+        // Log each result
+        spdlog::info("Vector ID: {}, Distance (1 - Cosine Similarity): {}", id, distance);
+
+        // Check if the ID exists in expectedDistances
+        ASSERT_TRUE(expectedDistances.find(id) != expectedDistances.end()) << "Unexpected vector ID found: " << id;
+
+        double expectedDistance = expectedDistances[id];
+        EXPECT_NEAR(distance, expectedDistance, 1e-6) << "Mismatch in distance for vector ID: " << id;
+    }
+
+    // Check if metadata is intact for the found vectors
+    for (const auto& [id, expectedDistance] : expectedDistances) {
+        auto vector = VectorManager::getInstance().getVectorByUniqueId(cosineVersionId, id);
+        auto metadataList = VectorMetadataManager::getInstance().getVectorMetadataByVectorId(vector.id);
+        spdlog::info("Vector ID: {}, Metadata: key = {}, value = {}", id, metadataList[0].key, metadataList[0].value);
+        EXPECT_EQ(metadataList[0].key, "category");
+        // Validate metadata value based on vector ID
+        if (id == 1) {
+            EXPECT_EQ(metadataList[0].value, "X");
+        } else if (id == 2) {
+            EXPECT_EQ(metadataList[0].value, "Y");
+        } else if (id == 3) {
+            EXPECT_EQ(metadataList[0].value, "Z");
+        } else if (id == 4) {
+            EXPECT_EQ(metadataList[0].value, "W");
+        } else if (id == 5) {
+            EXPECT_EQ(metadataList[0].value, "V");
+        }
+    }
+}

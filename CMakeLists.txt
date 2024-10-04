@@ -58,6 +58,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(jwt-cpp)
 
+# OpenSSL
+find_package(OpenSSL REQUIRED)
+
 # Include directories for header files
 include_directories(capi)
 include_directories(include)
@@ -105,7 +108,16 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE SQLiteCpp nlohmann_json::nlohmann_json spdlog::spdlog hnswlib zip jwt-cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    SQLiteCpp
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog
+    hnswlib
+    zip
+    jwt-cpp
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
 
 # Add executable for the test program
 add_executable(test_${PROJECT_NAME} 
@@ -170,7 +182,16 @@ add_executable(test_${PROJECT_NAME}
 )
 
 # Link the shared library to the test executable
-target_link_libraries(test_${PROJECT_NAME} PRIVATE ${PROJECT_NAME} gtest_main SQLiteCpp nlohmann_json::nlohmann_json spdlog::spdlog hnswlib zip jwt-cpp)
+target_link_libraries(test_${PROJECT_NAME} PRIVATE
+    ${PROJECT_NAME}
+    gtest_main
+    SQLiteCpp
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog
+    hnswlib
+    zip
+    jwt-cpp
+)
 
 # Include GoogleTest
 include(GoogleTest)

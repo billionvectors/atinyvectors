@@ -139,10 +139,15 @@ int VectorManager::addVector(Vector& vector) {
                     }
                     
                     hnswManager->addVectorData(value.sparseData, vector.unique_id);
-                } else if (value.type == VectorValueType::MultiVector) {
+                } 
+                else if (value.type == VectorValueType::MultiVector) {
+                    spdlog::debug("Multivector is currently not supported");
+                    /*
+                    TODO: Multivector is currently not supported!
                     for (const auto& mvData : value.multiVectorData) {
                         hnswManager->addVectorData(mvData, vector.unique_id);
                     }
+                    */
                 }
             }
         }

@@ -35,8 +35,8 @@ public:
 private:
     void setSpace(VectorValueType valueType, MetricType metric);
     void setOptimizerSettings();
-
-    std::vector<float> deserializeVector(const std::string& blobData);
+    std::vector<float> normalizeVector(const std::vector<float>& vector);
+    void normalizeSparseVector(SparseData* sparseVector);
 
 public:
     std::string indexFileName;
