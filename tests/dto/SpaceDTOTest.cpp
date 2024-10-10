@@ -152,7 +152,7 @@ TEST_F(SpaceDTOManagerTest, CreateSpaceWithNormalizedJson) {
 
     // 각 index의 이름을 확인하고, 일치하는 경우에만 검증 수행
     for (const auto& vectorIndex : vectorIndexes) {
-        if (vectorIndex.name == "Default Dense Index") {
+        if (vectorIndex.name == Config::getInstance().getDefaultDenseIndexName()) {
             // Dense Vector와 Optimizer 확인
             auto hnswConfig = vectorIndex.getHnswConfig();
             auto quantizationConfig = vectorIndex.getQuantizationConfig();
@@ -160,7 +160,7 @@ TEST_F(SpaceDTOManagerTest, CreateSpaceWithNormalizedJson) {
             EXPECT_EQ(hnswConfig.EfConstruct, 123);
             EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
             EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.8f);
-        } else if (vectorIndex.name == "Default Sparse Index") {
+        } else if (vectorIndex.name == Config::getInstance().getDefaultSparseIndexName()) {
             // Sparse Vector와 Optimizer 확인
             EXPECT_EQ(vectorIndex.metricType, MetricType::Cosine);
         } else if (vectorIndex.name == "index1") {
@@ -243,13 +243,13 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceIdTest) {
 
         std::string indexName = vectorIndex["name"];
 
-        if (indexName == "Default Dense Index") {
+        if (indexName == Config::getInstance().getDefaultDenseIndexName()) {
             EXPECT_EQ(vectorIndex["vectorValueType"], static_cast<int>(VectorValueType::Dense));
             EXPECT_EQ(vectorIndex["metricType"], static_cast<int>(MetricType::Cosine));
             EXPECT_EQ(vectorIndex["dimension"], 1536);
             EXPECT_EQ(vectorIndex["hnswConfig"]["M"], 32);
             EXPECT_EQ(vectorIndex["hnswConfig"]["EfConstruct"], 123);
-        } else if (indexName == "Default Sparse Index") {
+        } else if (indexName == Config::getInstance().getDefaultSparseIndexName()) {
             EXPECT_EQ(vectorIndex["vectorValueType"], static_cast<int>(VectorValueType::Sparse));
             EXPECT_EQ(vectorIndex["metricType"], static_cast<int>(MetricType::Cosine));
         } else {
@@ -369,4 +369,119 @@ TEST_F(SpaceDTOManagerTest, DeleteTest) {
     
     EXPECT_THROW(SpaceManager::getInstance().getSpaceById(spaceId), std::runtime_error);
     EXPECT_THROW(VersionManager::getInstance().getVersionById(versionId), std::runtime_error);
+}
+
+TEST_F(SpaceDTOManagerTest, UpdateSpaceTest) {
+    std::string initialJson = R"({
+        "name": "UpdateSpaceTest",
+        "dimension": 128,
+        "metric": "cosine",
+        "dense": {
+            "dimension": 1536,
+            "metric": "Cosine",
+            "hnsw_config": {
+                "m": 32,
+                "ef_construct": 123
+            },
+            "quantization_config": {
+                "scalar": {
+                    "type": "int8",
+                    "quantile": 0.8
+                }
+            }
+        },
+        "sparse": {
+            "metric": "Cosine"
+        }
+    })";
+
+    SpaceDTOManager manager;
+    manager.createSpace(initialJson);
+    int spaceId = IdCache::getInstance().getSpaceId("UpdateSpaceTest");
+
+    std::string updateJsonStr = R"({
+        "dense": {
+            "dimension": 1234,
+            "metric": "l2",
+            "hnsw_config": {
+                "m": 64,
+                "ef_construct": 55
+            }
+        }
+    })";
+
+    manager.updateSpace("UpdateSpaceTest", updateJsonStr);
+
+    json updatedJson = manager.getBySpaceId(spaceId);
+    
+    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaceId);
+    ASSERT_EQ(versions.size(), 1);
+    int versionId = versions[0].id;
+
+    auto vectorIndexes = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versionId);
+    ASSERT_EQ(vectorIndexes.size(), 2);
+
+    for (const auto& vectorIndex : vectorIndexes) {
+        if (vectorIndex.name == Config::getInstance().getDefaultDenseIndexName()) {
+            auto hnswConfig = vectorIndex.getHnswConfig();
+            auto quantizationConfig = vectorIndex.getQuantizationConfig();
+            EXPECT_EQ(vectorIndex.dimension, 1234);
+            EXPECT_EQ(vectorIndex.metricType, MetricType::L2);
+            EXPECT_EQ(hnswConfig.M, 64);
+            EXPECT_EQ(hnswConfig.EfConstruct, 55);
+            EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
+            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.8f);
+        } else if (vectorIndex.name == Config::getInstance().getDefaultSparseIndexName()) {
+            EXPECT_EQ(vectorIndex.metricType, MetricType::Cosine);
+            EXPECT_EQ(vectorIndex.dimension, 0); // Sparse index can be no dimension
+        } else {
+            FAIL() << "Unexpected vector index name: " << vectorIndex.name;
+        }
+    }
+}
+
+TEST_F(SpaceDTOManagerTest, UpdateSpaceWithAssignedVectorsShouldThrow) {
+    std::string initialJson = R"({
+        "name": "UpdateSpaceTest",
+        "dimension": 4,
+        "metric": "cosine"
+    })";
+
+    SpaceDTOManager manager;
+    manager.createSpace(initialJson);
+    int spaceId = IdCache::getInstance().getSpaceId("UpdateSpaceTest");
+    ASSERT_GT(spaceId, 0) << "Failed to create space.";
+
+    VectorDTOManager vectorDTOManager;
+    std::string vectorDataJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"category": "A"}
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"category": "B"}
+            }
+        ]
+    })";
+
+    vectorDTOManager.upsert("UpdateSpaceTest", 1, vectorDataJson);
+
+    std::string updateJsonStr = R"({
+        "dense": {
+            "dimension": 1234,
+            "metric": "l2",
+            "hnsw_config": {
+                "m": 64,
+                "ef_construct": 55
+            }
+        }
+    })";
+
+    EXPECT_THROW({
+        manager.updateSpace("UpdateSpaceTest", updateJsonStr);
+    }, std::runtime_error) << "updateSpace did not throw an exception when vectors are assigned.";
 }

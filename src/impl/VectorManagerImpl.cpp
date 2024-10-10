@@ -366,3 +366,18 @@ void VectorManager::deleteVector(unsigned long long id) {
 
     transaction.commit();
 }
+
+int VectorManager::countByVersionId(int versionId) {
+    auto& db = DatabaseManager::getInstance().getDatabase();
+    SQLite::Statement query(db, "SELECT COUNT(*) FROM Vector WHERE versionId = ? AND deleted = 0");
+    query.bind(1, versionId);
+
+    if (query.executeStep()) {
+        int count = query.getColumn(0).getInt();
+        spdlog::debug("Counted {} vectors for versionId: {}", count, versionId);
+        return count;
+    }
+
+    spdlog::error("Failed to count vectors for versionId: {}", versionId);
+    throw std::runtime_error("Failed to count vectors for the specified versionId.");
+}

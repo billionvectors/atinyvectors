@@ -1,4 +1,5 @@
 #include "dto/SpaceDTO.hpp"
+#include "utils/Utils.hpp"
 
 #include "Space.hpp"
 #include "Version.hpp"
@@ -6,6 +7,8 @@
 #include "VectorIndex.hpp"
 #include "VectorMetadata.hpp"
 #include "Config.hpp"
+#include "DatabaseManager.hpp"
+#include "IdCache.hpp"
 
 #include <string>
 #include <SQLiteCpp/SQLiteCpp.h>
@@ -19,6 +22,7 @@
 #include "spdlog/spdlog.h"
 
 using namespace nlohmann;
+using namespace atinyvectors::utils;
 
 namespace atinyvectors
 {
@@ -79,8 +83,10 @@ void processDenseConfiguration(const json& parsedJson, int versionId) {
         }
     }
 
-    if (parsedJson.contains("dense")) {
-        const json& denseJson = parsedJson["dense"];
+    const std::string& defaultDenseIndexName = Config::getInstance().getDefaultDenseIndexName();
+
+    if (parsedJson.contains(defaultDenseIndexName)) {
+        const json& denseJson = parsedJson[defaultDenseIndexName];
 
         denseDimension = denseJson.value("dimension", denseDimension);
         denseMetric = denseJson.value("metric", denseMetric);
@@ -88,7 +94,7 @@ void processDenseConfiguration(const json& parsedJson, int versionId) {
 
         HnswConfig hnswConfig = defaultHnswConfig;
         if (denseJson.contains("hnsw_config")) {
-            json hnswConfigJson = denseJson["hnsw_config"];
+            const json& hnswConfigJson = denseJson["hnsw_config"];
             
             if (hnswConfigJson.contains("M")) {
                 hnswConfig.M = hnswConfigJson["M"];
@@ -103,29 +109,31 @@ void processDenseConfiguration(const json& parsedJson, int versionId) {
 
         QuantizationConfig quantizationConfig = defaultQuantizationConfig;
         if (denseJson.contains("quantization_config")) {
-            json quantizationJson = denseJson["quantization_config"];
+            const json& quantizationJson = denseJson["quantization_config"];
             if (quantizationJson.contains("scalar")) {
-                json scalarJson = quantizationJson["scalar"];
+                const json& scalarJson = quantizationJson["scalar"];
                 quantizationConfig.Scalar.Type = scalarJson.value("type", quantizationConfig.Scalar.Type);
                 quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", quantizationConfig.Scalar.Quantile);
                 quantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", quantizationConfig.Scalar.AlwaysRam);
             }
         }
         
-        createDenseVectorIndex(versionId, "Default Dense Index", denseDimension, denseMetric, hnswConfig, quantizationConfig, true);
+        createDenseVectorIndex(versionId, defaultDenseIndexName, denseDimension, denseMetric, hnswConfig, quantizationConfig, true);
     } else {
-        createDenseVectorIndex(versionId, "Default Dense Index", denseDimension, denseMetric, defaultHnswConfig, defaultQuantizationConfig, true);
+        createDenseVectorIndex(versionId, defaultDenseIndexName, denseDimension, denseMetric, defaultHnswConfig, defaultQuantizationConfig, true);
     }
 }
 
 void processSparseConfiguration(const json& parsedJson, int versionId) {
-    if (parsedJson.contains("sparse")) {
-        const json& sparseJson = parsedJson["sparse"];
+    const std::string& defaultSparseIndexName = Config::getInstance().getDefaultSparseIndexName();
+
+    if (parsedJson.contains(defaultSparseIndexName)) {
+        const json& sparseJson = parsedJson[defaultSparseIndexName];
 
         std::string sparseMetric = sparseJson.value("metric", "cosine");
         std::transform(sparseMetric.begin(), sparseMetric.end(), sparseMetric.begin(), ::tolower);
 
-        createSparseVectorIndex(versionId, "Default Sparse Index", sparseMetric, true);
+        createSparseVectorIndex(versionId, defaultSparseIndexName, sparseMetric, true);
     }
 }
 
@@ -135,8 +143,7 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
     }
 
     const json& indexesJson = parsedJson["indexes"];
-    
-    bool is_default = true; // First vector is default
+    bool is_default = true;
 
     for (auto it = indexesJson.begin(); it != indexesJson.end(); ++it) {
         std::string indexName = it.key();
@@ -149,7 +156,7 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
         HnswConfig hnswConfig;
 
         if (indexJson.contains("hnsw_config")) {
-            json hnswConfigJson = indexJson["hnsw_config"];
+            const json& hnswConfigJson = indexJson["hnsw_config"];
             if (hnswConfigJson.contains("M")) {
                 hnswConfig.M = hnswConfigJson["M"];
             } else if (hnswConfigJson.contains("m")) {
@@ -162,9 +169,9 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
 
         QuantizationConfig quantizationConfig;
         if (indexJson.contains("quantization_config")) {
-            json quantizationJson = indexJson["quantization_config"];
+            const json& quantizationJson = indexJson["quantization_config"];
             if (quantizationJson.contains("scalar")) {
-                json scalarJson = quantizationJson["scalar"];
+                const json& scalarJson = quantizationJson["scalar"];
                 quantizationConfig.Scalar.Type = scalarJson.value("type", "int8");
                 quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", 0.99f);
                 quantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", true);
@@ -242,6 +249,167 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
     spdlog::info("Successfully fetched space details for spaceId: {}", space.id);
 
     return result;
+}
+
+VectorIndex* getVectorIndexByName(int versionId, const std::string& indexName) {
+    auto vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versionId);
+    for (auto& idx : vectorIndices) {
+        if (idx.name == indexName) {
+            return &idx;
+        }
+    }
+    return nullptr;
+}
+
+void updateDefaultDenseIndex(const json& parsedJson, int versionId, int spaceId) {
+    const std::string& defaultDenseIndexName = Config::getInstance().getDefaultDenseIndexName();
+
+    if (!parsedJson.contains(defaultDenseIndexName)) {
+        spdlog::info("No dense configuration found in update JSON.");
+        return;
+    }
+
+    const json& denseJson = parsedJson[defaultDenseIndexName];
+
+    std::vector<VectorIndex> vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versionId);
+    VectorIndex* denseIndex = nullptr;
+    for (auto& idx : vectorIndices) {
+        if (idx.name == defaultDenseIndexName) {
+            denseIndex = &idx;
+            break;
+        }
+    }
+    
+    if (denseIndex == nullptr) {
+        spdlog::error("Dense vector index '{}' not found for spaceId: {}", defaultDenseIndexName, spaceId);
+        throw std::runtime_error("Dense vector index not found.");
+    }
+
+    if (denseJson.contains("dimension")) {
+        denseIndex->dimension = denseJson["dimension"];
+    }
+    
+    if (denseJson.contains("metric")) {
+        denseIndex->metricType = metricTypeFromString(denseJson["metric"].get<std::string>());
+    }
+    
+    if (denseJson.contains("hnsw_config")) {
+        json hnswConfigJson = denseJson["hnsw_config"];
+        HnswConfig hnswConfig = denseIndex->getHnswConfig();
+        if (hnswConfigJson.contains("m")) {
+            hnswConfig.M = hnswConfigJson["m"];
+        }
+        if (hnswConfigJson.contains("ef_construct")) {
+            hnswConfig.EfConstruct = hnswConfigJson["ef_construct"];
+        }
+        denseIndex->setHnswConfig(hnswConfig);
+    }
+
+    VectorIndexManager::getInstance().updateVectorIndex(*denseIndex);
+    spdlog::info("Successfully updated dense vector index '{}'.", denseIndex->name);
+}
+
+void updateDefaultSparseIndex(const json& parsedJson, int versionId, int spaceId) {
+    const std::string& defaultSparseIndexName = Config::getInstance().getDefaultSparseIndexName();
+
+    if (!parsedJson.contains(defaultSparseIndexName)) {
+        spdlog::info("No sparse configuration found in update JSON.");
+        return;
+    }
+
+    const json& sparseJson = parsedJson[defaultSparseIndexName];
+
+    std::vector<VectorIndex> vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versionId);
+    VectorIndex* sparseIndex = nullptr;
+    for (auto& idx : vectorIndices) {
+        if (idx.name == defaultSparseIndexName) {
+            sparseIndex = &idx;
+            break;
+        }
+    }
+
+    if (sparseIndex == nullptr) {
+        spdlog::error("Sparse vector index '{}' not found for spaceId: {}", defaultSparseIndexName, spaceId);
+        throw std::runtime_error("Sparse vector index not found.");
+    }
+
+    if (sparseJson.contains("metric")) {
+        sparseIndex->metricType = metricTypeFromString(sparseJson["metric"].get<std::string>());
+    }
+
+    VectorIndexManager::getInstance().updateVectorIndex(*sparseIndex);
+    spdlog::info("Successfully updated sparse vector index '{}'.", sparseIndex->name);
+}
+
+void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId) {
+    if (!parsedJson.contains("indexes")) {
+        spdlog::info("No additional indexes found in update JSON.");
+        return;
+    }
+
+    const json& indexesJson = parsedJson["indexes"];
+    for (auto it = indexesJson.begin(); it != indexesJson.end(); ++it) {
+        std::string indexName = it.key();
+        const json& indexJson = it.value();
+
+        VectorIndex* targetIndex = getVectorIndexByName(versionId, indexName);
+
+        if (targetIndex == nullptr) {
+            int dimension = indexJson.value("dimension", 0);
+            std::string metric = indexJson.value("metric", "l2");
+            HnswConfig hnswConfig;
+            if (indexJson.contains("hnsw_config")) {
+                json hnswConfigJson = indexJson["hnsw_config"];
+                hnswConfig.M = hnswConfigJson.value("m", Config::getInstance().getM());
+                hnswConfig.EfConstruct = hnswConfigJson.value("ef_construct", Config::getInstance().getEfConstruction());
+            }
+            QuantizationConfig quantizationConfig;
+            if (indexJson.contains("quantization_config")) {
+                json quantizationJson = indexJson["quantization_config"];
+                if (quantizationJson.contains("scalar")) {
+                    json scalarJson = quantizationJson["scalar"];
+                    quantizationConfig.Scalar.Type = scalarJson.value("type", "int8");
+                    quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", 0.99f);
+                    quantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", true);
+                }
+            }
+
+            createDenseVectorIndex(versionId, indexName, dimension, metric, hnswConfig, quantizationConfig, false);
+            spdlog::info("Successfully created new vector index '{}'.", indexName);
+        } else {
+            if (indexJson.contains("dimension")) {
+                targetIndex->dimension = indexJson["dimension"];
+            }
+            if (indexJson.contains("metric")) {
+                targetIndex->metricType = metricTypeFromString(indexJson["metric"].get<std::string>());
+            }
+            if (indexJson.contains("hnsw_config")) {
+                json hnswConfigJson = indexJson["hnsw_config"];
+                HnswConfig hnswConfig = targetIndex->getHnswConfig();
+                if (hnswConfigJson.contains("m")) {
+                    hnswConfig.M = hnswConfigJson["m"];
+                }
+                if (hnswConfigJson.contains("ef_construct")) {
+                    hnswConfig.EfConstruct = hnswConfigJson["ef_construct"];
+                }
+                targetIndex->setHnswConfig(hnswConfig);
+            }
+            if (indexJson.contains("quantization_config")) {
+                json quantizationJson = indexJson["quantization_config"];
+                QuantizationConfig quantizationConfig = targetIndex->getQuantizationConfig();
+                if (quantizationJson.contains("scalar")) {
+                    json scalarJson = quantizationJson["scalar"];
+                    quantizationConfig.Scalar.Type = scalarJson.value("type", quantizationConfig.Scalar.Type);
+                    quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", quantizationConfig.Scalar.Quantile);
+                    quantizationConfig.Scalar.AlwaysRam = quantizationJson.value("always_ram", quantizationConfig.Scalar.AlwaysRam);
+                }
+                targetIndex->setQuantizationConfig(quantizationConfig);
+            }
+
+            VectorIndexManager::getInstance().updateVectorIndex(*targetIndex);
+            spdlog::info("Successfully updated vector index '{}'.", targetIndex->name);
+        }
+    }
 }
 
 } // anonymous namespace
@@ -339,6 +507,39 @@ nlohmann::json SpaceDTOManager::getLists() {
     result["values"] = values;
 
     return result;
+}
+
+void SpaceDTOManager::updateSpace(const std::string& spaceName, const std::string& jsonStr) {
+    spdlog::info("Starting updateSpace for spaceName: {}", spaceName);
+
+    try {
+        Space space = SpaceManager::getInstance().getSpaceByName(spaceName);
+
+        if (space.id <= 0) {
+            spdlog::error("Space with name '{}' not found.", spaceName);
+            throw std::runtime_error("Space not found.");
+        }
+
+        json parsedJson = json::parse(jsonStr);
+        int versionId = IdCache::getInstance().getDefaultVersionId(spaceName);
+        
+        int vectorCount = VectorManager::getInstance().countByVersionId(versionId);
+        if (vectorCount > 0) {
+            spdlog::error("Cannot update space '{}'. There are {} vectors assigned to its vector indices.", spaceName, vectorCount);
+            throw std::runtime_error("Cannot update space: vectors are assigned to vector indices.");
+        }
+
+        updateDefaultDenseIndex(parsedJson, versionId, space.id);
+        updateDefaultSparseIndex(parsedJson, versionId, space.id);
+        updateAdditionalIndexes(parsedJson, versionId, space.id);
+
+        space.updated_time_utc = getCurrentTimeUTC();
+        SpaceManager::getInstance().updateSpace(space);
+        spdlog::debug("Updated space's updated_time_utc to {}", space.updated_time_utc);
+    } catch (const std::exception& e) {
+        spdlog::error("Exception occurred in updateSpace for spaceName: {}. Error: {}", spaceName, e.what());
+        throw;
+    }
 }
 
 }

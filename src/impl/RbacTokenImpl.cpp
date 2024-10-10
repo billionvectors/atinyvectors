@@ -28,16 +28,16 @@ void RbacTokenManager::createTable() {
     db.exec("CREATE TABLE IF NOT EXISTS RbacToken ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
             "token TEXT NOT NULL, "
-            "user_id INTEGER NOT NULL, "
+            "space_id INTEGER NOT NULL, "
             "system_permission INTEGER NOT NULL, "
             "space_permission INTEGER NOT NULL, "
             "version_permission INTEGER NOT NULL, "
             "vector_permission INTEGER NOT NULL, "
-            "search_permission INTEGER NOT NULL, "      // Added
+            "search_permission INTEGER NOT NULL, "
             "snapshot_permission INTEGER NOT NULL, "
-            "security_permission INTEGER NOT NULL, "    // Added
-            "keyvalue_permission INTEGER NOT NULL, "    // Added
-            "expire_time_utc INTEGER NOT NULL);");      // Updated table schema
+            "security_permission INTEGER NOT NULL, "
+            "keyvalue_permission INTEGER NOT NULL, "
+            "expire_time_utc INTEGER NOT NULL);");
 
     db.exec("CREATE INDEX IF NOT EXISTS idx_rbac_expire_time_utc ON RbacToken(expire_time_utc);");
     db.exec("CREATE INDEX IF NOT EXISTS idx_rbac_token_expire ON RbacToken(token, expire_time_utc);");
@@ -92,19 +92,19 @@ int RbacTokenManager::addToken(RbacToken& token, int expireDays) {
     }
 
     SQLite::Statement insertQuery(db, 
-        "INSERT INTO RbacToken (token, user_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc) "
+        "INSERT INTO RbacToken (token, space_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
     insertQuery.bind(1, token.token);
-    insertQuery.bind(2, token.user_id);
+    insertQuery.bind(2, token.space_id);
     insertQuery.bind(3, static_cast<int>(token.system_permission));
     insertQuery.bind(4, static_cast<int>(token.space_permission));
     insertQuery.bind(5, static_cast<int>(token.version_permission));
     insertQuery.bind(6, static_cast<int>(token.vector_permission));
-    insertQuery.bind(7, static_cast<int>(token.search_permission));      // Bound
+    insertQuery.bind(7, static_cast<int>(token.search_permission));
     insertQuery.bind(8, static_cast<int>(token.snapshot_permission));
-    insertQuery.bind(9, static_cast<int>(token.security_permission));    // Bound
-    insertQuery.bind(10, static_cast<int>(token.keyvalue_permission));   // Bound
+    insertQuery.bind(9, static_cast<int>(token.security_permission));
+    insertQuery.bind(10, static_cast<int>(token.keyvalue_permission));
     insertQuery.bind(11, token.expire_time_utc);
     
     insertQuery.exec();
@@ -114,27 +114,27 @@ int RbacTokenManager::addToken(RbacToken& token, int expireDays) {
     return token.id;
 }
 
-RbacToken RbacTokenManager::newToken(int user_id, 
+RbacToken RbacTokenManager::newToken(int space_id, 
                                      Permission system_permission, 
                                      Permission space_permission,
                                      Permission version_permission, 
                                      Permission vector_permission,
-                                     Permission search_permission,      // Added
+                                     Permission search_permission,
                                      Permission snapshot_permission,
-                                     Permission security_permission,    // Added
-                                     Permission keyvalue_permission,    // Added
+                                     Permission security_permission,
+                                     Permission keyvalue_permission,
                                      int expireDays, 
-                                     const std::string& token) {         // Updated parameters
+                                     const std::string& token) {
     RbacToken rbacToken;
-    rbacToken.user_id = user_id;
+    rbacToken.space_id = space_id;
     rbacToken.system_permission = system_permission;
     rbacToken.space_permission = space_permission;
     rbacToken.version_permission = version_permission;
     rbacToken.vector_permission = vector_permission;
-    rbacToken.search_permission = search_permission;      // Set
+    rbacToken.search_permission = search_permission;
     rbacToken.snapshot_permission = snapshot_permission;
-    rbacToken.security_permission = security_permission;    // Set
-    rbacToken.keyvalue_permission = keyvalue_permission;    // Set
+    rbacToken.security_permission = security_permission;
+    rbacToken.keyvalue_permission = keyvalue_permission;
     
     // Use the provided token or generate a new one if empty
     rbacToken.token = !token.empty() ? token : generateJWTToken(expireDays);
@@ -149,7 +149,7 @@ std::vector<RbacToken> RbacTokenManager::getAllTokens() {
 
     // Query only non-expired tokens
     SQLite::Statement query(db, 
-        "SELECT id, token, user_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc "
+        "SELECT id, token, space_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc "
         "FROM RbacToken WHERE expire_time_utc > ?");
     
     query.bind(1, currentTime);
@@ -164,10 +164,10 @@ std::vector<RbacToken> RbacTokenManager::getAllTokens() {
             static_cast<Permission>(query.getColumn(4).getInt()),
             static_cast<Permission>(query.getColumn(5).getInt()),
             static_cast<Permission>(query.getColumn(6).getInt()),
-            static_cast<Permission>(query.getColumn(7).getInt()),  // search_permission
+            static_cast<Permission>(query.getColumn(7).getInt()),
             static_cast<Permission>(query.getColumn(8).getInt()),
-            static_cast<Permission>(query.getColumn(9).getInt()),  // security_permission
-            static_cast<Permission>(query.getColumn(10).getInt()), // keyvalue_permission
+            static_cast<Permission>(query.getColumn(9).getInt()),
+            static_cast<Permission>(query.getColumn(10).getInt()),
             query.getColumn(11).getInt64()
         );
     }
@@ -177,7 +177,7 @@ std::vector<RbacToken> RbacTokenManager::getAllTokens() {
 
 RbacToken RbacTokenManager::getTokenById(int id) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, token, user_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc FROM RbacToken WHERE id = ?");
+    SQLite::Statement query(db, "SELECT id, token, space_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc FROM RbacToken WHERE id = ?");
     query.bind(1, id);
 
     if (query.executeStep()) {
@@ -189,10 +189,10 @@ RbacToken RbacTokenManager::getTokenById(int id) {
             static_cast<Permission>(query.getColumn(4).getInt()),
             static_cast<Permission>(query.getColumn(5).getInt()),
             static_cast<Permission>(query.getColumn(6).getInt()),
-            static_cast<Permission>(query.getColumn(7).getInt()),  // search_permission
+            static_cast<Permission>(query.getColumn(7).getInt()),
             static_cast<Permission>(query.getColumn(8).getInt()),
-            static_cast<Permission>(query.getColumn(9).getInt()),  // security_permission
-            static_cast<Permission>(query.getColumn(10).getInt()), // keyvalue_permission
+            static_cast<Permission>(query.getColumn(9).getInt()),
+            static_cast<Permission>(query.getColumn(10).getInt()),
             query.getColumn(11).getInt64()
         );
     }
@@ -206,7 +206,7 @@ RbacToken RbacTokenManager::getTokenByToken(const std::string& token) {
 
     // Query for the token that is not expired
     SQLite::Statement query(db, 
-        "SELECT id, token, user_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc "
+        "SELECT id, token, space_id, system_permission, space_permission, version_permission, vector_permission, search_permission, snapshot_permission, security_permission, keyvalue_permission, expire_time_utc "
         "FROM RbacToken WHERE token = ? AND expire_time_utc > ?");
 
     query.bind(1, token);
@@ -216,30 +216,30 @@ RbacToken RbacTokenManager::getTokenByToken(const std::string& token) {
         // Log each fetched value before casting
         int id = query.getColumn(0).getInt();
         std::string fetchedToken = query.getColumn(1).getString();
-        int userId = query.getColumn(2).getInt();
+        int spaceId = query.getColumn(2).getInt();
         int systemPermInt = query.getColumn(3).getInt();
         int spacePermInt = query.getColumn(4).getInt();
         int versionPermInt = query.getColumn(5).getInt();
         int vectorPermInt = query.getColumn(6).getInt();
-        int searchPermInt = query.getColumn(7).getInt();         // search_permission
+        int searchPermInt = query.getColumn(7).getInt();
         int snapshotPermInt = query.getColumn(8).getInt();
-        int securityPermInt = query.getColumn(9).getInt();       // security_permission
-        int keyvaluePermInt = query.getColumn(10).getInt();      // keyvalue_permission
+        int securityPermInt = query.getColumn(9).getInt();
+        int keyvaluePermInt = query.getColumn(10).getInt(); 
         long expireTime = query.getColumn(11).getInt64();
 
         // Create and return the RbacToken object
         RbacToken fetchedTokenObj = RbacToken(
             id,
             fetchedToken,
-            userId,
+            spaceId,
             static_cast<Permission>(systemPermInt),
             static_cast<Permission>(spacePermInt),
             static_cast<Permission>(versionPermInt),
             static_cast<Permission>(vectorPermInt),
-            static_cast<Permission>(searchPermInt),      // search_permission
+            static_cast<Permission>(searchPermInt),
             static_cast<Permission>(snapshotPermInt),
-            static_cast<Permission>(securityPermInt),    // security_permission
-            static_cast<Permission>(keyvaluePermInt),    // keyvalue_permission
+            static_cast<Permission>(securityPermInt),
+            static_cast<Permission>(keyvaluePermInt),
             expireTime
         );
 
@@ -254,18 +254,18 @@ void RbacTokenManager::updateToken(const RbacToken& token) {
     SQLite::Transaction transaction(db);
 
     SQLite::Statement query(db, 
-        "UPDATE RbacToken SET token = ?, user_id = ?, system_permission = ?, space_permission = ?, version_permission = ?, vector_permission = ?, search_permission = ?, snapshot_permission = ?, security_permission = ?, keyvalue_permission = ?, expire_time_utc = ? WHERE id = ?");
+        "UPDATE RbacToken SET token = ?, space_id = ?, system_permission = ?, space_permission = ?, version_permission = ?, vector_permission = ?, search_permission = ?, snapshot_permission = ?, security_permission = ?, keyvalue_permission = ?, expire_time_utc = ? WHERE id = ?");
     
     query.bind(1, token.token);
-    query.bind(2, token.user_id);
+    query.bind(2, token.space_id);
     query.bind(3, static_cast<int>(token.system_permission));
     query.bind(4, static_cast<int>(token.space_permission));
     query.bind(5, static_cast<int>(token.version_permission));
     query.bind(6, static_cast<int>(token.vector_permission));
-    query.bind(7, static_cast<int>(token.search_permission));      // Bound
+    query.bind(7, static_cast<int>(token.search_permission));
     query.bind(8, static_cast<int>(token.snapshot_permission));
-    query.bind(9, static_cast<int>(token.security_permission));    // Bound
-    query.bind(10, static_cast<int>(token.keyvalue_permission));   // Bound
+    query.bind(9, static_cast<int>(token.security_permission));
+    query.bind(10, static_cast<int>(token.keyvalue_permission));
     query.bind(11, token.expire_time_utc);
     query.bind(12, token.id);
     

@@ -32,6 +32,7 @@ public:
     std::pair<std::string, int> getSpaceNameAndVersionUniqueIdByVectorIndexId(int vectorIndexId);
 
     bool getSpaceExists(const std::string& spaceName);
+    int getSpaceId(const std::string& spaceName); // 새로 추가된 함수
     RbacToken getRbacToken(const std::string& token);
 
     SparseDataPool& getSparseDataPool(int vectorIndexId);
@@ -43,7 +44,7 @@ private:
     std::mutex cacheMutex;
     std::mutex spaceNameCacheMutex;
     std::mutex vectorIndexCacheMutex;
-    std::mutex spaceExistsCacheMutex;
+    std::mutex spaceIdCacheMutex;
 
     std::map<std::pair<std::string, int>, int> forwardCache;
     std::map<int, std::pair<std::string, int>> reverseCache;
@@ -56,14 +57,14 @@ private:
 
     std::map<std::string, RbacToken> rbacTokenCache;
     
-    std::map<std::string, bool> spaceExistsCache;
-    
+    std::map<std::string, int> spaceIdCache;
+
     std::map<int, std::shared_ptr<SparseDataPool>> sparseDataPoolByIndexIdCache;
 
     int fetchFromDb(const std::string& spaceName, int versionUniqueId);
     std::pair<std::string, int> fetchByVersionIdFromDb(int versionId);
     RbacToken fetchRbacTokenFromManager(const std::string& token);
-    bool fetchSpaceExistsFromDb(const std::string& spaceName);
+    int fetchSpaceIdFromDb(const std::string& spaceName);
 };
 
 };

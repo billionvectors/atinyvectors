@@ -20,6 +20,7 @@ typedef struct RbacTokenDTOManager RbacTokenDTOManager;
 SpaceDTOManager* atv_space_dto_manager_new();
 void atv_space_dto_manager_free(SpaceDTOManager* manager);
 void atv_space_dto_create_space(SpaceDTOManager* manager, const char* jsonStr);
+void atv_space_dto_update_space(SpaceDTOManager* manager, const char* spaceName, const char* jsonStr);
 char* atv_space_dto_get_by_space_id(SpaceDTOManager* manager, int spaceId);
 char* atv_space_dto_get_by_space_name(SpaceDTOManager* manager, const char* spaceName);
 char* atv_space_dto_get_lists(SpaceDTOManager* manager);

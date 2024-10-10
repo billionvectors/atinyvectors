@@ -106,7 +106,7 @@ nlohmann::json RbacTokenDTOManager::listTokens() {
         for (const auto& token : tokens) {
             nlohmann::json tokenJson;
             tokenJson["id"] = token.id;
-            tokenJson["user_id"] = token.user_id;
+            tokenJson["space_id"] = token.space_id;
             tokenJson["token"] = token.token;
             tokenJson["expire_time_utc"] = token.expire_time_utc;
             tokenJson["system"] = permissionToDTOValue(token.system_permission);
@@ -183,7 +183,7 @@ nlohmann::json RbacTokenDTOManager::newToken(const std::string& jsonStr, const s
     try {
         nlohmann::json parsedJson = nlohmann::json::parse(jsonStr);
 
-        int user_id = parsedJson.contains("user_id") ? parsedJson["user_id"].get<int>() : 0;
+        int space_id = parsedJson.contains("space_id") ? parsedJson["space_id"].get<int>() : 0;
         Permission system_perm = static_cast<Permission>(parsedJson.contains("system") ? parsedJson["system"].get<int>() : 0);
         Permission space_perm = static_cast<Permission>(parsedJson.contains("space") ? parsedJson["space"].get<int>() : 0);
         Permission version_perm = static_cast<Permission>(parsedJson.contains("version") ? parsedJson["version"].get<int>() : 0);
@@ -196,7 +196,7 @@ nlohmann::json RbacTokenDTOManager::newToken(const std::string& jsonStr, const s
         int expire_days = parsedJson.contains("expire_days") ? parsedJson["expire_days"].get<int>() : 0;
 
         auto newToken = RbacTokenManager::getInstance().newToken(
-            user_id, 
+            space_id, 
             system_perm, 
             space_perm, 
             version_perm, 

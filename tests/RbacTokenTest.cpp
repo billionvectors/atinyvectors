@@ -102,7 +102,7 @@ TEST_F(RbacTokenManagerTest, CreateNewToken) {
 
     // Create a new token with all permissions
     RbacToken token = tokenManager.newToken(
-        1,                              // user_id
+        1,                              // space_id
         perms.system_permission,        // system_permission
         perms.space_permission,         // space_permission
         perms.version_permission,       // version_permission
@@ -116,7 +116,7 @@ TEST_F(RbacTokenManagerTest, CreateNewToken) {
 
     // Verify that the token was created successfully
     EXPECT_GT(token.id, 0);
-    EXPECT_EQ(token.user_id, 1);
+    EXPECT_EQ(token.space_id, 1);
     EXPECT_EQ(token.system_permission, perms.system_permission);
     EXPECT_EQ(token.space_permission, perms.space_permission);
     EXPECT_EQ(token.version_permission, perms.version_permission);
@@ -130,7 +130,7 @@ TEST_F(RbacTokenManagerTest, CreateNewToken) {
     RbacToken retrieved = tokenManager.getTokenByToken(token.token);
     EXPECT_EQ(retrieved.id, token.id);
     EXPECT_EQ(retrieved.token, token.token);
-    EXPECT_EQ(retrieved.user_id, 1);
+    EXPECT_EQ(retrieved.space_id, 1);
     EXPECT_EQ(retrieved.system_permission, perms.system_permission);
     EXPECT_EQ(retrieved.space_permission, perms.space_permission);
     EXPECT_EQ(retrieved.version_permission, perms.version_permission);
@@ -243,7 +243,7 @@ TEST_F(RbacTokenManagerTest, DeleteAllExpiredTokens) {
 
     // Create a non-expired token
     RbacToken validToken = tokenManager.newToken(
-        4,                              // user_id
+        4,                              // space_id
         validPerms.system_permission,   // system_permission
         validPerms.space_permission,    // space_permission
         validPerms.version_permission,  // version_permission
@@ -263,7 +263,7 @@ TEST_F(RbacTokenManagerTest, DeleteAllExpiredTokens) {
 
     // Check the non-expired token still exists
     RbacToken retrieved = tokenManager.getTokenByToken(validToken.token);
-    EXPECT_EQ(retrieved.user_id, 4);
+    EXPECT_EQ(retrieved.space_id, 4);
 
     // Verify all permissions of the valid token
     EXPECT_EQ(retrieved.system_permission, validPerms.system_permission);
@@ -385,7 +385,7 @@ TEST_F(RbacTokenManagerTest, GetAllTokens) {
 
     // Create first token
     RbacToken token1 = tokenManager.newToken(
-        6,                              // user_id
+        6,                              // space_id
         perms1.system_permission,        // system_permission
         perms1.space_permission,         // space_permission
         perms1.version_permission,       // version_permission
@@ -399,7 +399,7 @@ TEST_F(RbacTokenManagerTest, GetAllTokens) {
 
     // Create second token
     RbacToken token2 = tokenManager.newToken(
-        7,                              // user_id
+        7,                              // space_id
         perms2.system_permission,        // system_permission
         perms2.space_permission,         // space_permission
         perms2.version_permission,       // version_permission
@@ -422,7 +422,7 @@ TEST_F(RbacTokenManagerTest, GetAllTokens) {
         return t.id == token1.id;
     });
     ASSERT_NE(it1, allTokens.end());
-    EXPECT_EQ(it1->user_id, 6);
+    EXPECT_EQ(it1->space_id, 6);
     EXPECT_EQ(it1->system_permission, perms1.system_permission);
     EXPECT_EQ(it1->space_permission, perms1.space_permission);
     EXPECT_EQ(it1->version_permission, perms1.version_permission);
@@ -437,7 +437,7 @@ TEST_F(RbacTokenManagerTest, GetAllTokens) {
         return t.id == token2.id;
     });
     ASSERT_NE(it2, allTokens.end());
-    EXPECT_EQ(it2->user_id, 7);
+    EXPECT_EQ(it2->space_id, 7);
     EXPECT_EQ(it2->system_permission, perms2.system_permission);
     EXPECT_EQ(it2->space_permission, perms2.space_permission);
     EXPECT_EQ(it2->version_permission, perms2.version_permission);

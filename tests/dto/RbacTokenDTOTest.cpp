@@ -99,7 +99,7 @@ protected:
 
 TEST_F(RbacTokenDTOTest, GetPermissions) {
     RbacTokenDTOManager dtoManager;
-    auto newTokenJson = dtoManager.newToken("{\"user_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
+    auto newTokenJson = dtoManager.newToken("{\"space_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
 
     std::string token = newTokenJson["token"];
 
@@ -112,14 +112,14 @@ TEST_F(RbacTokenDTOTest, GetPermissions) {
 
 TEST_F(RbacTokenDTOTest, ListTokens) {
     RbacTokenDTOManager dtoManager;
-    dtoManager.newToken("{\"user_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
+    dtoManager.newToken("{\"space_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
     auto tokens = dtoManager.listTokens();
     EXPECT_GT(tokens.size(), 0); // Ensure at least one token is listed
 }
 
 TEST_F(RbacTokenDTOTest, DeleteToken) {
     RbacTokenDTOManager dtoManager;
-    auto newTokenJson = dtoManager.newToken("{\"user_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
+    auto newTokenJson = dtoManager.newToken("{\"space_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
     std::string token = newTokenJson["token"];
     
     dtoManager.deleteToken(token);
@@ -128,7 +128,7 @@ TEST_F(RbacTokenDTOTest, DeleteToken) {
 
 TEST_F(RbacTokenDTOTest, UpdateToken) {
     RbacTokenDTOManager dtoManager;
-    auto newTokenJson = dtoManager.newToken("{\"user_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
+    auto newTokenJson = dtoManager.newToken("{\"space_id\": 1, \"system\": 2, \"space\": 1, \"vector\": 2, \"snapshot\": 1}");
     std::string token = newTokenJson["token"];
 
     dtoManager.updateToken(token, "{\"expire_time_utc\": 9999999999}");
@@ -140,7 +140,7 @@ TEST_F(RbacTokenDTOTest, NewTokenWithExistingToken) {
     std::string existingToken = "existing_token_value";
 
     // Create a new token with a specific token value
-    auto newTokenJson = dtoManager.newToken("{\"user_id\": 2, \"system\": 1, \"space\": 2, \"version\": 1, \"snapshot\": 2}", existingToken.c_str());
+    auto newTokenJson = dtoManager.newToken("{\"space_id\": 2, \"system\": 1, \"space\": 2, \"version\": 1, \"snapshot\": 2}", existingToken.c_str());
 
     EXPECT_EQ(newTokenJson["token"], existingToken); // Ensure the provided token value is used
 

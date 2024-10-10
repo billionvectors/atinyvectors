@@ -61,6 +61,14 @@ public:
         return jwtTokenKey_;
     }
 
+    std::string getDefaultDenseIndexName() const {
+        return DEFAULT_DENSE_INDEX_NAME;
+    }
+
+    std::string getDefaultSparseIndexName() const {
+        return DEFAULT_SPARSE_INDEX_NAME;
+    }
+
     void initializeLogger() {
         spdlog::level::level_enum logLevel = spdlog::level::info;
         if (logLevel_ == "debug") {
@@ -99,6 +107,9 @@ private:
     
     const int DEFAULT_TOKEN_EXPIRE_DAYS = 30;
     const std::string DEFAULT_JWT_TOKEN_KEY = "atinyvectors_jwt_token_key_is_really_good_and_i_hope_so_much_whatever_you_want";
+
+    const std::string DEFAULT_DENSE_INDEX_NAME = "dense";
+    const std::string DEFAULT_SPARSE_INDEX_NAME = "sparse";
 
     int hnswIndexCacheCapacity_;  // Cache capacity for HNSW index
     int m_;                       // M value for HNSW
