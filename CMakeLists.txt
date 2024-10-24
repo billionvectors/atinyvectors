@@ -58,10 +58,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(jwt-cpp)
 
+# Antlr4
+FetchContent_Declare(
+  antlr4-runtime
+  GIT_REPOSITORY https://github.com/antlr/antlr4.git
+  GIT_TAG 4.13.2
+)
+FetchContent_GetProperties(antlr4-runtime)
+
+if(NOT antlr4-runtime_POPULATED)
+  FetchContent_Populate(antlr4-runtime)
+  add_subdirectory(${antlr4-runtime_SOURCE_DIR}/runtime/Cpp ${antlr4-runtime_BINARY_DIR}/runtime/Cpp)
+endif()
+include_directories(${antlr4-runtime_SOURCE_DIR}/runtime/Cpp/runtime/src)
+
 # OpenSSL
 find_package(OpenSSL REQUIRED)
 
 # Include directories for header files
+include_directories(parser)
 include_directories(capi)
 include_directories(include)
 include_directories(src)
@@ -92,6 +107,8 @@ add_library(${PROJECT_NAME} SHARED
 
   src/impl/utils/UtilsImpl.cpp
   
+  src/impl/filter/SQLBuilderVisitor.cpp
+
   src/impl/ConfigImpl.cpp 
   src/impl/DatabaseManagerImpl.cpp 
   src/impl/IdCacheImpl.cpp 
@@ -105,6 +122,12 @@ add_library(${PROJECT_NAME} SHARED
   src/impl/VectorValueImpl.cpp
   src/impl/VersionImpl.cpp
   src/impl/SnapshotImpl.cpp
+
+  # antlr4
+  parser/PlanLexer.cpp
+  parser/PlanParser.cpp
+  parser/PlanBaseVisitor.cpp
+  parser/PlanVisitor.cpp
 )
 
 # Link libraries
@@ -117,7 +140,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     jwt-cpp
     OpenSSL::SSL
     OpenSSL::Crypto
+    antlr4_static
 )
+
+target_compile_options(${PROJECT_NAME} PRIVATE ${disabled_compile_warnings})
 
 # Add executable for the test program
 add_executable(test_${PROJECT_NAME} 
@@ -134,6 +160,8 @@ add_executable(test_${PROJECT_NAME}
   tests/dto/VectorDTOTest.cpp
   tests/dto/VersionDTOTest.cpp
   
+  # tests/filter/SQLBuilderVisitorTest.cpp
+
   tests/ConfigTest.cpp 
   tests/IdCacheTest.cpp 
   tests/RbacTokenTest.cpp 
@@ -166,6 +194,8 @@ add_executable(test_${PROJECT_NAME}
   src/impl/dto/VersionDTOImpl.cpp 
 
   src/impl/utils/UtilsImpl.cpp
+  
+  src/impl/filter/SQLBuilderVisitor.cpp
 
   src/impl/ConfigImpl.cpp 
   src/impl/DatabaseManagerImpl.cpp 
@@ -179,6 +209,12 @@ add_executable(test_${PROJECT_NAME}
   src/impl/VectorMetadataImpl.cpp
   src/impl/VectorValueImpl.cpp
   src/impl/VersionImpl.cpp
+
+  # antlr4
+  parser/PlanLexer.cpp
+  parser/PlanParser.cpp
+  parser/PlanBaseVisitor.cpp
+  parser/PlanVisitor.cpp
 )
 
 # Link the shared library to the test executable
@@ -191,6 +227,7 @@ target_link_libraries(test_${PROJECT_NAME} PRIVATE
     hnswlib
     zip
     jwt-cpp
+    antlr4_static
 )
 
 # Include GoogleTest

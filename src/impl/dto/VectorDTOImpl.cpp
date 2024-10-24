@@ -303,10 +303,12 @@ void VectorDTOManager::processVectors(const json& parsedJson, int versionId, int
     }
 }
 
-json VectorDTOManager::getVectorsByVersionId(int versionId) {
+json VectorDTOManager::getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit) {
     json result;
 
-    auto vectors = VectorManager::getInstance().getVectorsByVersionId(versionId);
+    IdCache& idCache = IdCache::getInstance();
+    int versionId = idCache.getVersionId(spaceName, versionUniqueId);
+    auto vectors = VectorManager::getInstance().getVectorsByVersionId(versionId, start, limit);
     json vectorsJson = json::array();
 
     for (const auto& vector : vectors) {

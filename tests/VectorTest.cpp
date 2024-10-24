@@ -260,3 +260,32 @@ TEST_F(VectorManagerTest, AddVectorWithValues) {
     EXPECT_FLOAT_EQ(retrievedData[1], 2.2f);
     EXPECT_FLOAT_EQ(retrievedData[2], 3.3f);
 }
+
+// Test for paginated retrieval of vectors by versionId
+TEST_F(VectorManagerTest, GetVectorsByVersionIdWithPagination) {
+    VectorManager& manager = VectorManager::getInstance();
+
+    // Add multiple vectors to test pagination
+    for (int i = 0; i < 10; ++i) {
+        Vector vector(0, versionId, 0, VectorValueType::Dense, {}, false); // Provide 0 as unique_id
+        manager.addVector(vector);
+    }
+
+    // Test retrieving the first 5 vectors
+    auto firstBatch = manager.getVectorsByVersionId(versionId, 0, 5);
+    ASSERT_EQ(firstBatch.size(), 5);
+    for (int i = 0; i < 5; ++i) {
+        EXPECT_EQ(firstBatch[i].versionId, versionId);
+    }
+
+    // Test retrieving the next 5 vectors (6th to 10th)
+    auto secondBatch = manager.getVectorsByVersionId(versionId, 5, 5);
+    ASSERT_EQ(secondBatch.size(), 5);
+    for (int i = 0; i < 5; ++i) {
+        EXPECT_EQ(secondBatch[i].versionId, versionId);
+    }
+
+    // Ensure no more vectors are returned after the 10th
+    auto thirdBatch = manager.getVectorsByVersionId(versionId, 10, 5);
+    EXPECT_TRUE(thirdBatch.empty());
+}

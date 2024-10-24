@@ -39,7 +39,7 @@ char* atv_version_dto_get_lists(VersionDTOManager* manager, const char* spaceNam
 VectorDTOManager* atv_vector_dto_manager_new();
 void atv_vector_dto_manager_free(VectorDTOManager* manager);
 void atv_vector_dto_upsert(VectorDTOManager* manager, const char* spaceName, int versionId, const char* jsonStr);
-char* atv_vector_dto_get_vectors_by_version_id(VectorDTOManager* manager, int versionId);
+char* atv_vector_dto_get_vectors_by_version_id(VectorDTOManager* manager, const char* spaceName, int versionId, int start, int limit);
 
 // C API for SearchDTOManager
 SearchDTOManager* atv_search_dto_manager_new();

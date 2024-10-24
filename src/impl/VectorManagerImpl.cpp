@@ -275,24 +275,25 @@ Vector VectorManager::getVectorByUniqueId(int versionId, int unique_id) {
     throw std::runtime_error("Vector not found with the specified versionId and unique_id.");
 }
 
-std::vector<Vector> VectorManager::getVectorsByVersionId(int versionId) {
+std::vector<Vector> VectorManager::getVectorsByVersionId(int versionId, int start, int limit) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, versionId, unique_id, type, deleted FROM Vector WHERE versionId = ?");
+    
+    // Modified SQL query with LIMIT and OFFSET
+    SQLite::Statement query(db, "SELECT id, versionId, unique_id, type, deleted FROM Vector WHERE versionId = ? LIMIT ? OFFSET ?");
     query.bind(1, versionId);
+    query.bind(2, limit);  // Limit the number of rows returned
+    query.bind(3, start);  // Offset from where to start fetching rows
     
     std::vector<Vector> vectors;
-    spdlog::info("Fetching vectors for versionId: {}", versionId);  // Replaced cout with spdlog
+    spdlog::debug("Fetching vectors for versionId: {} with start: {}, limit: {}", versionId, start, limit);
 
     while (query.executeStep()) {
         Vector vector;
         vector.id = query.getColumn(0).getInt64();
         vector.versionId = query.getColumn(1).getInt();
-        vector.unique_id = query.getColumn(2).getInt(); // Fetch the unique_id
+        vector.unique_id = query.getColumn(2).getInt();
         vector.type = static_cast<VectorValueType>(query.getColumn(3).getInt());
         vector.deleted = query.getColumn(4).getInt() != 0;
-
-        spdlog::debug("Fetched vector - ID: {}, VersionID: {}, UniqueID: {}, Type: {}, Deleted: {}", 
-                      vector.id, vector.versionId, vector.unique_id, static_cast<int>(vector.type), vector.deleted);
 
         // Retrieve associated VectorValues
         SQLite::Statement valueQuery(db, "SELECT id, vectorId, vectorIndexId, type, data FROM VectorValue WHERE vectorId = ?");
@@ -309,20 +310,15 @@ std::vector<Vector> VectorManager::getVectorsByVersionId(int versionId) {
             blobData.assign(static_cast<const uint8_t*>(valueQuery.getColumn(4).getBlob()),
                             static_cast<const uint8_t*>(valueQuery.getColumn(4).getBlob()) + valueQuery.getColumn(4).getBytes());
 
-            spdlog::debug("Processing VectorValue - ID: {}, VectorID: {}, Index: {}, Type: {}", 
-                          value.id, value.vectorId, value.vectorIndexId, static_cast<int>(value.type));
-
             // Deserialize the data into VectorValue
             value.deserialize(blobData);
             vector.values.push_back(value);
         }
 
         vectors.push_back(vector);
-        spdlog::debug("Added vector to list - ID: {}", vector.id); // Log when a vector is added to the list
     }
 
-    spdlog::info("Finished fetching vectors for versionId: {}. Total vectors fetched: {}", versionId, vectors.size());  // Log total fetched vectors
-
+    spdlog::debug("Finished fetching vectors for versionId: {}. Total vectors fetched: {}", versionId, vectors.size());
     return vectors;
 }
 

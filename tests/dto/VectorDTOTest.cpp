@@ -195,7 +195,7 @@ TEST_F(VectorDTOManagerTest, UpsertStandaloneDenseAndSparseVectors) {
     manager.upsert("default_space", 0, updateJson);
 
     // Fetch all vectors by versionId
-    json fetchedJson = manager.getVectorsByVersionId(versionId);
+    json fetchedJson = manager.getVectorsByVersionId("default_space", 1, 0, 10);
     ASSERT_TRUE(fetchedJson.contains("vectors"));
     ASSERT_TRUE(fetchedJson["vectors"].is_array());
     ASSERT_EQ(fetchedJson["vectors"].size(), 2);

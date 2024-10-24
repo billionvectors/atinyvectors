@@ -26,3 +26,4 @@ target/
 build/
 data/
 output/
+dist/

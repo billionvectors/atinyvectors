@@ -522,11 +522,11 @@ void SpaceDTOManager::updateSpace(const std::string& spaceName, const std::strin
 
         json parsedJson = json::parse(jsonStr);
         int versionId = IdCache::getInstance().getDefaultVersionId(spaceName);
-        
+
         int vectorCount = VectorManager::getInstance().countByVersionId(versionId);
         if (vectorCount > 0) {
             spdlog::error("Cannot update space '{}'. There are {} vectors assigned to its vector indices.", spaceName, vectorCount);
-            throw std::runtime_error("Cannot update space: vectors are assigned to vector indices.");
+            throw std::runtime_error("Cannot update space: vectors are assigned to vector indices. please cleanup vector index before update");
         }
 
         updateDefaultDenseIndex(parsedJson, versionId, space.id);

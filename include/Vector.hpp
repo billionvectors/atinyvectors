@@ -83,7 +83,7 @@ public:
 
     int addVector(Vector& vector);
     std::vector<Vector> getAllVectors();
-    std::vector<Vector> getVectorsByVersionId(int versionId);
+    std::vector<Vector> getVectorsByVersionId(int versionId, int start, int limit);
 
     int countByVersionId(int versionId);
     
