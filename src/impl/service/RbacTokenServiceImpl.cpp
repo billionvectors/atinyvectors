@@ -1,15 +1,15 @@
-#include "dto/RbacTokenDTO.hpp"
+#include "service/RbacTokenService.hpp"
 #include "RbacToken.hpp"
 #include "IdCache.hpp"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
 
 namespace atinyvectors {
-namespace dto {
+namespace service {
 
 namespace {
 
-int permissionToDTOValue(Permission permission) {
+int permissionToServiceValue(Permission permission) {
     switch (permission) {
         case Permission::ReadOnly: return 1;
         case Permission::ReadWrite: return 2;
@@ -19,87 +19,87 @@ int permissionToDTOValue(Permission permission) {
 
 } // anonymous namespace
 
-int RbacTokenDTOManager::getSystemPermission(const std::string& token) {
+int RbacTokenServiceManager::getSystemPermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.system_permission);
+        return permissionToServiceValue(rbacToken.system_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getSystemPermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getSpacePermission(const std::string& token) {
+int RbacTokenServiceManager::getSpacePermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.space_permission);
+        return permissionToServiceValue(rbacToken.space_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getSpacePermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getVersionPermission(const std::string& token) {
+int RbacTokenServiceManager::getVersionPermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.version_permission);
+        return permissionToServiceValue(rbacToken.version_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getVersionPermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getVectorPermission(const std::string& token) {
+int RbacTokenServiceManager::getVectorPermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.vector_permission);
+        return permissionToServiceValue(rbacToken.vector_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getVectorPermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getSnapshotPermission(const std::string& token) {
+int RbacTokenServiceManager::getSnapshotPermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.snapshot_permission);
+        return permissionToServiceValue(rbacToken.snapshot_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getSnapshotPermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getSearchPermission(const std::string& token) {
+int RbacTokenServiceManager::getSearchPermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.search_permission);
+        return permissionToServiceValue(rbacToken.search_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getSearchPermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getSecurityPermission(const std::string& token) {
+int RbacTokenServiceManager::getSecurityPermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.security_permission);
+        return permissionToServiceValue(rbacToken.security_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getSecurityPermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-int RbacTokenDTOManager::getKeyvaluePermission(const std::string& token) {
+int RbacTokenServiceManager::getKeyvaluePermission(const std::string& token) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
-        return permissionToDTOValue(rbacToken.keyvalue_permission);
+        return permissionToServiceValue(rbacToken.keyvalue_permission);
     } catch (const std::exception& e) {
         spdlog::error("Error in getKeyvaluePermission: {}", e.what());
         throw std::runtime_error("Token not found or expired");
     }
 }
 
-nlohmann::json RbacTokenDTOManager::listTokens() {
+nlohmann::json RbacTokenServiceManager::listTokens() {
     try {
         auto tokens = RbacTokenManager::getInstance().getAllTokens();
         nlohmann::json result = nlohmann::json::array();
@@ -109,14 +109,14 @@ nlohmann::json RbacTokenDTOManager::listTokens() {
             tokenJson["space_id"] = token.space_id;
             tokenJson["token"] = token.token;
             tokenJson["expire_time_utc"] = token.expire_time_utc;
-            tokenJson["system"] = permissionToDTOValue(token.system_permission);
-            tokenJson["space"] = permissionToDTOValue(token.space_permission);
-            tokenJson["version"] = permissionToDTOValue(token.version_permission);
-            tokenJson["vector"] = permissionToDTOValue(token.vector_permission);
-            tokenJson["search"] = permissionToDTOValue(token.search_permission);
-            tokenJson["snapshot"] = permissionToDTOValue(token.snapshot_permission);
-            tokenJson["security"] = permissionToDTOValue(token.security_permission);
-            tokenJson["keyvalue"] = permissionToDTOValue(token.keyvalue_permission);
+            tokenJson["system"] = permissionToServiceValue(token.system_permission);
+            tokenJson["space"] = permissionToServiceValue(token.space_permission);
+            tokenJson["version"] = permissionToServiceValue(token.version_permission);
+            tokenJson["vector"] = permissionToServiceValue(token.vector_permission);
+            tokenJson["search"] = permissionToServiceValue(token.search_permission);
+            tokenJson["snapshot"] = permissionToServiceValue(token.snapshot_permission);
+            tokenJson["security"] = permissionToServiceValue(token.security_permission);
+            tokenJson["keyvalue"] = permissionToServiceValue(token.keyvalue_permission);
 
             result.push_back(tokenJson);
         }
@@ -127,7 +127,7 @@ nlohmann::json RbacTokenDTOManager::listTokens() {
     }
 }
 
-void RbacTokenDTOManager::deleteToken(const std::string& token) {
+void RbacTokenServiceManager::deleteToken(const std::string& token) {
     try {
         RbacTokenManager::getInstance().deleteByToken(token);
     } catch (const std::exception& e) {
@@ -136,7 +136,7 @@ void RbacTokenDTOManager::deleteToken(const std::string& token) {
     }
 }
 
-void RbacTokenDTOManager::updateToken(const std::string& token, const std::string& jsonStr) {
+void RbacTokenServiceManager::updateToken(const std::string& token, const std::string& jsonStr) {
     try {
         auto rbacToken = IdCache::getInstance().getRbacToken(token);
         nlohmann::json parsedJson = nlohmann::json::parse(jsonStr);
@@ -179,7 +179,7 @@ void RbacTokenDTOManager::updateToken(const std::string& token, const std::strin
     }
 }
 
-nlohmann::json RbacTokenDTOManager::newToken(const std::string& jsonStr, const std::string& token) {
+nlohmann::json RbacTokenServiceManager::newToken(const std::string& jsonStr, const std::string& token) {
     try {
         nlohmann::json parsedJson = nlohmann::json::parse(jsonStr);
 
@@ -219,7 +219,7 @@ nlohmann::json RbacTokenDTOManager::newToken(const std::string& jsonStr, const s
     }
 }
 
-std::string RbacTokenDTOManager::generateJWTToken(int expireDays) {
+std::string RbacTokenServiceManager::generateJWTToken(int expireDays) {
     return RbacTokenManager::generateJWTToken(expireDays);
 }
 

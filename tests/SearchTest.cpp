@@ -1,7 +1,6 @@
 // SearchTest.cpp
-
 #include <gtest/gtest.h>
-#include "dto/VectorDTO.hpp"
+#include "service/VectorService.hpp"
 #include "algo/HnswIndexManager.hpp"
 #include "algo/HnswIndexLRUCache.hpp" 
 #include "Vector.hpp"
@@ -16,7 +15,7 @@
 #include <vector>
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace atinyvectors::algo;
 using namespace nlohmann;
 
@@ -99,7 +98,7 @@ TEST_F(SearchTest, VectorSearchTest) {
         ]
     })";
 
-    VectorDTOManager manager;
+    VectorServiceManager manager;
     manager.upsert("VectorSearchTest", 0, vectorDataJson);
 
     // Prepare search query

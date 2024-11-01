@@ -1,9 +1,9 @@
-// SearchDTOTest.cpp
+// SearchServiceTest.cpp
 
 #include <gtest/gtest.h>
-#include "dto/SpaceDTO.hpp"
-#include "dto/SearchDTO.hpp"
-#include "dto/VectorDTO.hpp"
+#include "service/SpaceService.hpp"
+#include "service/SearchService.hpp"
+#include "service/VectorService.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
@@ -20,12 +20,12 @@
 #include <cmath>
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace atinyvectors::algo;
 using namespace nlohmann;
 
 // Test Fixture class
-class SearchDTOTest : public ::testing::Test {
+class SearchServiceTest : public ::testing::Test {
 protected:
     void SetUp() override {
         IdCache::getInstance().clean();
@@ -79,7 +79,7 @@ protected:
     }
 };
 
-TEST_F(SearchDTOTest, VectorSearchWithJSONQuery) {
+TEST_F(SearchServiceTest, VectorSearchWithJSONQuery) {
     // Set up Space, Version, and VectorIndex for search
     Space defaultSpace(0, "VectorSearchWithJSONQuery", "Default Space Description", 0, 0);
     int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
@@ -116,16 +116,16 @@ TEST_F(SearchDTOTest, VectorSearchWithJSONQuery) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("VectorSearchWithJSONQuery", 1, vectorDataJson);
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("VectorSearchWithJSONQuery", 1, vectorDataJson);
 
     // Prepare search query JSON
     std::string queryJsonStr = R"({
         "vector": [0.25, 0.45, 0.75, 0.85]
     })";
 
-    // Perform the search using SearchDTOManager
-    SearchDTOManager searchManager;
+    // Perform the search using SearchServiceManager
+    SearchServiceManager searchManager;
     auto searchResults = searchManager.search("VectorSearchWithJSONQuery", 1, queryJsonStr, 2);
 
     // Log distances and result metadata for debugging
@@ -169,7 +169,7 @@ TEST_F(SearchDTOTest, VectorSearchWithJSONQuery) {
     EXPECT_EQ(metadataList2[0].value, "B");
 }
 
-TEST_F(SearchDTOTest, VectorSearchWithSparseVectors) {
+TEST_F(SearchServiceTest, VectorSearchWithSparseVectors) {
     // Set up Space, Version, and VectorIndex for sparse search
     Space sparseSpace(0, "VectorSearchWithSparseVectors", "Space for Sparse Vector Search", 0, 0);
     int sparseSpaceId = SpaceManager::getInstance().addSpace(sparseSpace);
@@ -209,8 +209,8 @@ TEST_F(SearchDTOTest, VectorSearchWithSparseVectors) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManagerSparse;
-    vectorDTOManagerSparse.upsert("VectorSearchWithSparseVectors", 1, sparseVectorDataJson);
+    VectorServiceManager vectorServiceManagerSparse;
+    vectorServiceManagerSparse.upsert("VectorSearchWithSparseVectors", 1, sparseVectorDataJson);
     spdlog::debug("Upsert success! prepare search");
 
     // Prepare search query JSON for sparse vector
@@ -221,8 +221,8 @@ TEST_F(SearchDTOTest, VectorSearchWithSparseVectors) {
         }
     })";
 
-    // Perform the search using SearchDTOManager
-    SearchDTOManager searchManagerSparse;
+    // Perform the search using SearchServiceManager
+    SearchServiceManager searchManagerSparse;
     auto searchResultsSparse = searchManagerSparse.search("VectorSearchWithSparseVectors", 1, sparseQueryJsonStr, 2);
 
     // Log distances and result metadata for debugging
@@ -265,7 +265,7 @@ TEST_F(SearchDTOTest, VectorSearchWithSparseVectors) {
     EXPECT_EQ(sparseMetadataList2[0].value, "D");
 }
 
-TEST_F(SearchDTOTest, VectorSearchWithJSONQueryUsingDefaultVersion) {
+TEST_F(SearchServiceTest, VectorSearchWithJSONQueryUsingDefaultVersion) {
     // Create a space
     std::string inputJson = R"({
         "name": "VectorSearchWithDefaultVersion",
@@ -277,8 +277,8 @@ TEST_F(SearchDTOTest, VectorSearchWithJSONQueryUsingDefaultVersion) {
         }
     })";
 
-    SpaceDTOManager spaceDTOManager;
-    spaceDTOManager.createSpace(inputJson);
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
 
     // Retrieve the spaceId
     Space space = SpaceManager::getInstance().getSpaceByName("VectorSearchWithDefaultVersion");
@@ -312,16 +312,16 @@ TEST_F(SearchDTOTest, VectorSearchWithJSONQueryUsingDefaultVersion) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("VectorSearchWithDefaultVersion", 0, vectorDataJson); // versionUniqueId is 0
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("VectorSearchWithDefaultVersion", 0, vectorDataJson); // versionUniqueId is 0
 
     // Prepare search query JSON
     std::string queryJsonStr = R"({
         "vector": [0.25, 0.45, 0.75, 0.85]
     })";
 
-    // Perform the search using SearchDTOManager
-    SearchDTOManager searchManager;
+    // Perform the search using SearchServiceManager
+    SearchServiceManager searchManager;
     auto searchResults = searchManager.search("VectorSearchWithDefaultVersion", 0, queryJsonStr, 2); // default versionUniqueId is 0
 
     // Log distances and result metadata for debugging
@@ -365,7 +365,7 @@ TEST_F(SearchDTOTest, VectorSearchWithJSONQueryUsingDefaultVersion) {
     EXPECT_EQ(metadataList2[0].value, "B");
 }
 
-TEST_F(SearchDTOTest, VectorSearchWithCosineMetric) {
+TEST_F(SearchServiceTest, VectorSearchWithCosineMetric) {
     // Set up Space, Version, and VectorIndex for Cosine search
     Space cosineSpace(0, "VectorSearchWithCosineMetric", "Space for Cosine metric", 0, 0);
     int cosineSpaceId = SpaceManager::getInstance().addSpace(cosineSpace);
@@ -417,16 +417,16 @@ TEST_F(SearchDTOTest, VectorSearchWithCosineMetric) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManagerCosine;
-    vectorDTOManagerCosine.upsert("VectorSearchWithCosineMetric", 1, vectorDataCosineJson);
+    VectorServiceManager vectorServiceManagerCosine;
+    vectorServiceManagerCosine.upsert("VectorSearchWithCosineMetric", 1, vectorDataCosineJson);
 
     // Prepare search query JSON for Cosine metric
     std::string queryCosineJsonStr = R"({
         "vector": [1.0, 0.0, 0.0, 0.0]
     })";
 
-    // Perform the search using SearchDTOManager
-    SearchDTOManager searchManagerCosine;
+    // Perform the search using SearchServiceManager
+    SearchServiceManager searchManagerCosine;
     auto searchResultsCosine = searchManagerCosine.search("VectorSearchWithCosineMetric", 1, queryCosineJsonStr, 5);
 
     // Log distances and result metadata for debugging
@@ -488,4 +488,97 @@ TEST_F(SearchDTOTest, VectorSearchWithCosineMetric) {
             EXPECT_EQ(metadataList[0].value, "V");
         }
     }
+}
+
+TEST_F(SearchServiceTest, VectorSearchWithJSONQueryAndFilter) {
+    // Set up Space, Version, and VectorIndex for search
+    Space defaultSpace(0, "VectorSearchWithJSONQuery", "Default Space Description", 0, 0);
+    int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
+
+    Version defaultVersion(0, spaceId, 1, "Default Version", "Automatically created default version", "v1", 0, 0, true);
+    int versionId = VersionManager::getInstance().addVersion(defaultVersion);
+
+    // Cache the versionId using IdCache
+    IdCache::getInstance().getVersionId("VectorSearchWithJSONQuery", 1);
+
+    // HNSW and Quantization configurations
+    HnswConfig hnswConfig(16, 200);
+    QuantizationConfig quantizationConfig;
+
+    // Create and add a default VectorIndex
+    VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", MetricType::L2, 4,
+                             hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
+    VectorIndexManager::getInstance().addVectorIndex(defaultIndex);
+
+    // Insert vectors for search with metadata
+    std::string vectorDataJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"category": "A"}
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"category": "B"}
+            },
+            {
+                "id": 3,
+                "data": [0.50, 0.60, 0.70, 0.80],
+                "metadata": {"category": "A"}
+            }
+        ]
+    })";
+
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("VectorSearchWithJSONQuery", 1, vectorDataJson);
+
+    // Prepare search query JSON with filter
+    std::string queryJsonStr = R"({
+        "vector": [0.25, 0.45, 0.75, 0.85],
+        "filter": "category == 'A'"
+    })";
+
+    // Perform the search using SearchServiceManager
+    SearchServiceManager searchManager;
+    auto searchResults = searchManager.search("VectorSearchWithJSONQuery", 1, queryJsonStr, 3);
+
+    // Log distances and result metadata for debugging
+    spdlog::info("Search results with filter size: {}", searchResults.size());
+    for (const auto& result : searchResults) {
+        spdlog::info("Distance: {}, ID: {}", result.first, result.second);
+    }
+
+    // Validate that only two results are returned with category 'A'
+    ASSERT_EQ(searchResults.size(), 2);
+
+    // Validate distances (check closest matches)
+    double distance1 = searchResults[0].first;
+    double distance2 = searchResults[1].first;
+
+    // Log distances for debugging
+    spdlog::info("Distance1: {}", distance1);
+    spdlog::info("Distance2: {}", distance2);
+
+    // Expected distance for the closest vector with 'category: A'
+    double expectedDistance1 = 0.0;
+    double expectedDistance2 = (
+        std::pow(0.25 - 0.50, 2) + std::pow(0.45 - 0.60, 2) +
+        std::pow(0.75 - 0.70, 2) + std::pow(0.85 - 0.80, 2)
+    );
+
+    EXPECT_NEAR(distance1, expectedDistance1, 1e-6); // Compare within allowable error range
+    EXPECT_NEAR(distance2, expectedDistance2, 1e-6);
+
+    // Check metadata for the filtered results
+    auto vector1 = VectorManager::getInstance().getVectorByUniqueId(versionId, 1);
+    auto metadataList1 = VectorMetadataManager::getInstance().getVectorMetadataByVectorId(vector1.id);
+    EXPECT_EQ(metadataList1[0].key, "category");
+    EXPECT_EQ(metadataList1[0].value, "A");
+
+    auto vector3 = VectorManager::getInstance().getVectorByUniqueId(versionId, 3);
+    auto metadataList3 = VectorMetadataManager::getInstance().getVectorMetadataByVectorId(vector3.id);
+    EXPECT_EQ(metadataList3[0].key, "category");
+    EXPECT_EQ(metadataList3[0].value, "A");
 }

@@ -1,4 +1,4 @@
-#include "dto/SnapshotDTO.hpp"
+#include "service/SnapshotService.hpp"
 #include "Snapshot.hpp"
 #include "Version.hpp"
 #include "Space.hpp"
@@ -30,7 +30,7 @@ namespace fs = std::filesystem;
 
 namespace atinyvectors
 {
-namespace dto
+namespace service
 {
 namespace
 {
@@ -77,7 +77,7 @@ std::string getSnapshotDirectory() {
 
 } // anonymous namespace
 
-void SnapshotDTOManager::createSnapshot(const std::string& jsonStr) {
+void SnapshotServiceManager::createSnapshot(const std::string& jsonStr) {
     json inputJson = json::parse(jsonStr);
 
     spdlog::info("Starting createSnapshot with inputJson: {}", inputJson.dump());
@@ -121,7 +121,7 @@ void SnapshotDTOManager::createSnapshot(const std::string& jsonStr) {
     }
 }
 
-void SnapshotDTOManager::restoreSnapshot(const std::string& fileName) {
+void SnapshotServiceManager::restoreSnapshot(const std::string& fileName) {
     spdlog::info("Starting restoreSnapshot for fileName: {}", fileName);
 
     try {
@@ -148,9 +148,29 @@ void SnapshotDTOManager::restoreSnapshot(const std::string& fileName) {
     }
 }
 
-nlohmann::json SnapshotDTOManager::listSnapshots() {
-    spdlog::debug("Starting listSnapshots");
+void SnapshotServiceManager::deleteSnapshot(const std::string& filename) {
+    spdlog::info("Starting deleteSnapshot for filename: {}", filename);
 
+    try {
+        // Get the snapshot directory
+        std::string snapshotDirectory = getSnapshotDirectory();
+        std::string fullFilePath = snapshotDirectory + filename;
+
+        // Check if the file exists
+        if (fs::exists(fullFilePath)) {
+            fs::remove(fullFilePath);
+            spdlog::info("Deleted snapshot file: {}", fullFilePath);
+        } else {
+            spdlog::warn("Snapshot file not found: {}", fullFilePath);
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::error("Exception occurred in deleteSnapshot for filename: {}. Error: {}", filename, e.what());
+        throw;
+    }
+}
+
+nlohmann::json SnapshotServiceManager::listSnapshots() {
     try {
         nlohmann::json result;
         nlohmann::json snapshots = nlohmann::json::array();
@@ -163,18 +183,7 @@ nlohmann::json SnapshotDTOManager::listSnapshots() {
                 nlohmann::json snapshotJson;
                 std::string fileName = entry.path().filename().string();
                 
-                // Extract versionUniqueId and date from file name
                 if (fileName.rfind("snapshot-", 0) == 0 && fileName.size() > 18 && fileName.substr(fileName.size() - 4) == ".zip") {
-                    auto pos1 = fileName.find("-");
-                    auto pos2 = fileName.find("-", pos1 + 1);
-                    auto pos3 = fileName.find("-", pos2 + 1);
-
-                    if (pos1 != std::string::npos && pos2 != std::string::npos && pos3 != std::string::npos) {
-                        snapshotJson["version_id"] = std::stoi(fileName.substr(pos2 + 1, pos3 - pos2 - 1));
-                        std::string timestamp = fileName.substr(pos3 + 1, fileName.find(".zip") - pos3 - 1);
-                        snapshotJson["date"] = formatTimestampToReadableDate(timestamp);  // Format the date
-                    }
-
                     snapshotJson["file_name"] = fileName;
                     snapshots.push_back(snapshotJson);
                 }
@@ -183,14 +192,13 @@ nlohmann::json SnapshotDTOManager::listSnapshots() {
 
         result["snapshots"] = snapshots;
         return result;
-
     } catch (const std::exception& e) {
         spdlog::error("Exception occurred in listSnapshots. Error: {}", e.what());
         throw;
     }
 }
 
-void SnapshotDTOManager::deleteSnapshots() {
+void SnapshotServiceManager::deleteSnapshots() {
     spdlog::info("Starting deleteSnapshots");
 
     try {

@@ -1,5 +1,5 @@
-#ifndef __ATINYVECTORS_SEARCH_DTO_HPP__
-#define __ATINYVECTORS_SEARCH_DTO_HPP__
+#ifndef __ATINYVECTORS_SEARCH_SERVICE_HPP__
+#define __ATINYVECTORS_SEARCH_SERVICE_HPP__
 
 #include <vector>
 #include <string>
@@ -7,9 +7,9 @@
 #include "hnswlib/hnswlib.h"
 
 namespace atinyvectors {
-namespace dto {
+namespace service {
 
-class SearchDTOManager {
+class SearchServiceManager {
 public:
     // Method to perform a search based on a JSON query and return the top k results with version's Unique ID
     std::vector<std::pair<float, hnswlib::labeltype>> search(const std::string& spaceName, int versionUniqueId, const std::string& queryJsonStr, size_t k);
@@ -22,7 +22,7 @@ private:
     int findVectorIndexBySpaceNameAndVersionUniqueId(const std::string& spaceName, int& outVersionUniqueId);
 };
 
-} // namespace dto
+} // namespace service
 } // namespace atinyvectors
 
-#endif // __ATINYVECTORS_SEARCH_DTO_HPP__
+#endif // __ATINYVECTORS_SEARCH_SERVICE_HPP__

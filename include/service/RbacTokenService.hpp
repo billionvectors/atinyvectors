@@ -1,14 +1,14 @@
-#ifndef __ATINYVECTORS_RBACTOKEN_DTO_HPP__
-#define __ATINYVECTORS_RBACTOKEN_DTO_HPP__
+#ifndef __ATINYVECTORS_RBACTOKEN_SERVICE_HPP__
+#define __ATINYVECTORS_RBACTOKEN_SERVICE_HPP__
 
 #include <iostream>
 #include <string>
 #include "nlohmann/json.hpp"
 
 namespace atinyvectors {
-namespace dto {
+namespace service {
 
-class RbacTokenDTOManager {
+class RbacTokenServiceManager {
 public:
     int getSpacePermission(const std::string& token);
     int getVersionPermission(const std::string& token);
@@ -27,7 +27,7 @@ public:
     nlohmann::json newToken(const std::string& jsonStr, const std::string& token = "");
 };
 
-} // namespace dto
+} // namespace service
 } // namespace atinyvectors
 
-#endif // __ATINYVECTORS_RBACTOKEN_DTO_HPP__
+#endif // __ATINYVECTORS_RBACTOKEN_SERVICE_HPP__

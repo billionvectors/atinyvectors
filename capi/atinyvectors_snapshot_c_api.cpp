@@ -1,39 +1,48 @@
 #include "atinyvectors_c_api.h"
-#include "dto/SnapshotDTO.hpp"
+#include "service/SnapshotService.hpp"
 #include <cstring>
 #include <iostream>
 #include "nlohmann/json.hpp"
 
-// C API for SnapshotDTOManager
-SnapshotDTOManager* atv_snapshot_dto_manager_new() {
-    return reinterpret_cast<SnapshotDTOManager*>(new atinyvectors::dto::SnapshotDTOManager());
+// C API for SnapshotServiceManager
+SnapshotServiceManager* atv_snapshot_service_manager_new() {
+    return reinterpret_cast<SnapshotServiceManager*>(new atinyvectors::service::SnapshotServiceManager());
 }
 
-void atv_snapshot_dto_manager_free(SnapshotDTOManager* manager) {
-    delete reinterpret_cast<atinyvectors::dto::SnapshotDTOManager*>(manager);
+void atv_snapshot_service_manager_free(SnapshotServiceManager* manager) {
+    delete reinterpret_cast<atinyvectors::service::SnapshotServiceManager*>(manager);
 }
 
-void atv_snapshot_dto_create_snapshot(SnapshotDTOManager* manager, const char* jsonStr) {
+void atv_snapshot_service_create_snapshot(SnapshotServiceManager* manager, const char* jsonStr) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::SnapshotDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::SnapshotServiceManager*>(manager);
         cppManager->createSnapshot(jsonStr);
     } catch (const std::exception& e) {
         atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());
     }
 }
 
-void atv_snapshot_dto_restore_snapshot(SnapshotDTOManager* manager, const char* fileName) {
+void atv_snapshot_service_restore_snapshot(SnapshotServiceManager* manager, const char* fileName) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::SnapshotDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::SnapshotServiceManager*>(manager);
         cppManager->restoreSnapshot(fileName);
     } catch (const std::exception& e) {
         atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());
     }
 }
 
-char* atv_snapshot_dto_list_snapshots(SnapshotDTOManager* manager) {
+void atv_snapshot_service_delete_snapshot(SnapshotServiceManager* manager, const char* fileName) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::SnapshotDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::SnapshotServiceManager*>(manager);
+        cppManager->deleteSnapshot(fileName);
+    } catch (const std::exception& e) {
+        atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());
+    }
+}
+
+char* atv_snapshot_service_list_snapshots(SnapshotServiceManager* manager) {
+    try {
+        auto* cppManager = reinterpret_cast<atinyvectors::service::SnapshotServiceManager*>(manager);
         nlohmann::json result = cppManager->listSnapshots();
         
         // Allocate memory and return JSON string
@@ -48,9 +57,9 @@ char* atv_snapshot_dto_list_snapshots(SnapshotDTOManager* manager) {
     }
 }
 
-void atv_snapshot_dto_delete_snapshots(SnapshotDTOManager* manager) {
+void atv_snapshot_service_delete_snapshots(SnapshotServiceManager* manager) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::SnapshotDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::SnapshotServiceManager*>(manager);
         cppManager->deleteSnapshots();
     } catch (const std::exception& e) {
         atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());

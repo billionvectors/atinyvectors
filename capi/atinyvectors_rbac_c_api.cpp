@@ -1,21 +1,21 @@
 #include "atinyvectors_c_api.h"
-#include "dto/RbacTokenDTO.hpp"
+#include "service/RbacTokenService.hpp"
 #include <cstring>
 #include <iostream>
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
 
-// C API for RbacTokenDTOManager
-RbacTokenDTOManager* atv_rbac_token_dto_manager_new() {
-    return reinterpret_cast<RbacTokenDTOManager*>(new atinyvectors::dto::RbacTokenDTOManager());
+// C API for RbacTokenServiceManager
+RbacTokenServiceManager* atv_rbac_token_service_manager_new() {
+    return reinterpret_cast<RbacTokenServiceManager*>(new atinyvectors::service::RbacTokenServiceManager());
 }
 
-void atv_rbac_token_dto_manager_free(RbacTokenDTOManager* manager) {
-    delete reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+void atv_rbac_token_service_manager_free(RbacTokenServiceManager* manager) {
+    delete reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
 }
 
-int atv_rbac_token_get_system_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_system_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getSystemPermission(token);
     } catch (const std::exception& e) {
@@ -24,8 +24,8 @@ int atv_rbac_token_get_system_permission(RbacTokenDTOManager* manager, const cha
     }
 }
 
-int atv_rbac_token_get_space_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_space_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getSpacePermission(token);
     } catch (const std::exception& e) {
@@ -34,8 +34,8 @@ int atv_rbac_token_get_space_permission(RbacTokenDTOManager* manager, const char
     }
 }
 
-int atv_rbac_token_get_version_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_version_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getVersionPermission(token);
     } catch (const std::exception& e) {
@@ -44,8 +44,8 @@ int atv_rbac_token_get_version_permission(RbacTokenDTOManager* manager, const ch
     }
 }
 
-int atv_rbac_token_get_vector_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_vector_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getVectorPermission(token);
     } catch (const std::exception& e) {
@@ -54,8 +54,8 @@ int atv_rbac_token_get_vector_permission(RbacTokenDTOManager* manager, const cha
     }
 }
 
-int atv_rbac_token_get_snapshot_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_snapshot_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getSnapshotPermission(token);
     } catch (const std::exception& e) {
@@ -64,8 +64,8 @@ int atv_rbac_token_get_snapshot_permission(RbacTokenDTOManager* manager, const c
     }
 }
 
-int atv_rbac_token_get_search_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_search_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getSearchPermission(token);
     } catch (const std::exception& e) {
@@ -74,8 +74,8 @@ int atv_rbac_token_get_search_permission(RbacTokenDTOManager* manager, const cha
     }
 }
 
-int atv_rbac_token_get_security_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_security_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getSecurityPermission(token);
     } catch (const std::exception& e) {
@@ -84,8 +84,8 @@ int atv_rbac_token_get_security_permission(RbacTokenDTOManager* manager, const c
     }
 }
 
-int atv_rbac_token_get_keyvalue_permission(RbacTokenDTOManager* manager, const char* token) {
-    auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+int atv_rbac_token_get_keyvalue_permission(RbacTokenServiceManager* manager, const char* token) {
+    auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
     try {
         return cppManager->getKeyvaluePermission(token);
     } catch (const std::exception& e) {
@@ -94,9 +94,9 @@ int atv_rbac_token_get_keyvalue_permission(RbacTokenDTOManager* manager, const c
     }
 }
 
-char* atv_rbac_token_new_token(RbacTokenDTOManager* manager, const char* jsonStr, const char* token) {
+char* atv_rbac_token_new_token(RbacTokenServiceManager* manager, const char* jsonStr, const char* token) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
 
         // Check if token is provided; if not, pass an empty string
         std::string providedToken = (token != nullptr) ? token : "";
@@ -117,9 +117,9 @@ char* atv_rbac_token_new_token(RbacTokenDTOManager* manager, const char* jsonStr
     }
 }
 
-char* atv_rbac_token_generate_jwt_token(RbacTokenDTOManager* manager, int expireDays) {
+char* atv_rbac_token_generate_jwt_token(RbacTokenServiceManager* manager, int expireDays) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
         std::string newToken = cppManager->generateJWTToken(expireDays);
 
         char* resultCStr = (char*)malloc(newToken.size() + 1);
@@ -133,9 +133,9 @@ char* atv_rbac_token_generate_jwt_token(RbacTokenDTOManager* manager, int expire
     }
 }
 
-char* atv_rbac_token_list_tokens(RbacTokenDTOManager* manager) {
+char* atv_rbac_token_list_tokens(RbacTokenServiceManager* manager) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
         nlohmann::json result = cppManager->listTokens();
 
         // Convert JSON result to a C string
@@ -153,9 +153,9 @@ char* atv_rbac_token_list_tokens(RbacTokenDTOManager* manager) {
     }
 }
 
-void atv_rbac_token_delete_token(RbacTokenDTOManager* manager, const char* token) {
+void atv_rbac_token_delete_token(RbacTokenServiceManager* manager, const char* token) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
         cppManager->deleteToken(token);
     } catch (const std::exception& e) {
         spdlog::error("Error in delete_token: {}", e.what());
@@ -163,9 +163,9 @@ void atv_rbac_token_delete_token(RbacTokenDTOManager* manager, const char* token
     }
 }
 
-void atv_rbac_token_update_token(RbacTokenDTOManager* manager, const char* token, const char* jsonStr) {
+void atv_rbac_token_update_token(RbacTokenServiceManager* manager, const char* token, const char* jsonStr) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::RbacTokenDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::RbacTokenServiceManager*>(manager);
         cppManager->updateToken(token, jsonStr);
     } catch (const nlohmann::json::exception& e) {
         spdlog::error("Error in update_token (JSON): {}", e.what());

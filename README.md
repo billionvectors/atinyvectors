@@ -17,7 +17,7 @@ This project is a library project. If you want to obtain an executable binary, p
 - CMake 3.14+
 - Clang (or other C++ compiler)
 - GoogleTest for unit testing
-- SQLiteCpp, libzip and nlohmann/json libraries
+- SQLiteCpp, libzip, antlr4 and nlohmann/json libraries
 
 ## Docs
 
@@ -50,16 +50,16 @@ build_run_test.sh
 ```
 
 ### Usage
-The project includes several Data Transfer Objects (DTOs) for managing spaces, versions, and vectors. You can use these DTOs via the provided C API or directly in C++.
+The project includes several Service Objects (Service) for managing spaces, versions, and vectors. You can use these service via the provided C API or directly in C++.
 
 Example Usage
-The C++ API allows you to create spaces, add vectors, and perform searches. Here is an example of how to use the SearchDTO to perform a vector search:
+The C++ API allows you to create spaces, add vectors, and perform searches. Here is an example of how to use the SearchService to perform a vector search:
 
 ```cpp
-#include "dto/SearchDTO.hpp"
+#include "service/SearchService.hpp"
 
 int main() {
-    atinyvectors::dto::SearchDTOManager searchManager;
+    atinyvectors::service::SearchServiceManager searchManager;
     std::string queryJson = "{\"vector\": [0.25, 0.45, 0.75]}";
     
     auto results = searchManager.search("space_name", queryJson, 5);

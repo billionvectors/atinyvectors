@@ -57,7 +57,7 @@ void planParserInitialize() {
     std::vector<std::string>{
       "", "'('", "')'", "'['", "','", "']'", "'<'", "'<='", "'>'", "'>='", 
       "'=='", "'!='", "", "", "'+'", "'-'", "'*'", "'/'", "'%'", "'**'", 
-      "'<<'", "'>>'", "'&'", "'|'", "'^'", "", "", "'~'", "", "'in'", "'not in'"
+      "'<<'", "'>>'", "'&'", "'|'", "'^'", "", "", "'~'"
     },
     std::vector<std::string>{
       "", "", "", "", "", "", "LT", "LE", "GT", "GE", "EQ", "NE", "LIKE", 
@@ -70,51 +70,50 @@ void planParserInitialize() {
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,46,129,2,0,7,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+  	4,1,46,126,2,0,7,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
   	0,1,0,1,0,5,0,18,8,0,10,0,12,0,21,9,0,1,0,3,0,24,8,0,1,0,1,0,1,0,1,0,
   	1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
   	0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3,0,57,8,0,1,0,1,0,1,0,1,0,1,0,
   	1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
   	0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
   	1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,5,0,111,8,0,10,0,12,0,
-  	114,9,0,1,0,3,0,117,8,0,1,0,1,0,1,0,1,0,1,0,5,0,124,8,0,10,0,12,0,127,
-  	9,0,1,0,0,1,0,1,0,0,13,2,0,14,15,27,28,2,0,32,32,35,35,2,0,33,33,36,36,
-  	2,0,34,34,37,37,2,0,42,42,44,44,1,0,16,18,1,0,14,15,1,0,20,21,1,0,6,7,
-  	1,0,8,9,1,0,6,9,1,0,10,11,1,0,29,30,160,0,56,1,0,0,0,2,3,6,0,-1,0,3,57,
-  	5,40,0,0,4,57,5,41,0,0,5,57,5,39,0,0,6,57,5,43,0,0,7,57,5,42,0,0,8,57,
-  	5,44,0,0,9,10,5,1,0,0,10,11,3,0,0,0,11,12,5,2,0,0,12,57,1,0,0,0,13,14,
-  	5,3,0,0,14,19,3,0,0,0,15,16,5,4,0,0,16,18,3,0,0,0,17,15,1,0,0,0,18,21,
-  	1,0,0,0,19,17,1,0,0,0,19,20,1,0,0,0,20,23,1,0,0,0,21,19,1,0,0,0,22,24,
-  	5,4,0,0,23,22,1,0,0,0,23,24,1,0,0,0,24,25,1,0,0,0,25,26,5,5,0,0,26,57,
-  	1,0,0,0,27,28,7,0,0,0,28,57,3,0,0,20,29,30,7,1,0,0,30,31,5,1,0,0,31,32,
-  	3,0,0,0,32,33,5,4,0,0,33,34,3,0,0,0,34,35,5,2,0,0,35,57,1,0,0,0,36,37,
-  	7,2,0,0,37,38,5,1,0,0,38,39,3,0,0,0,39,40,5,4,0,0,40,41,3,0,0,0,41,42,
-  	5,2,0,0,42,57,1,0,0,0,43,44,7,3,0,0,44,45,5,1,0,0,45,46,3,0,0,0,46,47,
-  	5,4,0,0,47,48,3,0,0,0,48,49,5,2,0,0,49,57,1,0,0,0,50,51,5,38,0,0,51,52,
-  	5,1,0,0,52,53,7,4,0,0,53,57,5,2,0,0,54,55,5,13,0,0,55,57,3,0,0,1,56,2,
-  	1,0,0,0,56,4,1,0,0,0,56,5,1,0,0,0,56,6,1,0,0,0,56,7,1,0,0,0,56,8,1,0,
-  	0,0,56,9,1,0,0,0,56,13,1,0,0,0,56,27,1,0,0,0,56,29,1,0,0,0,56,36,1,0,
-  	0,0,56,43,1,0,0,0,56,50,1,0,0,0,56,54,1,0,0,0,57,125,1,0,0,0,58,59,10,
-  	21,0,0,59,60,5,19,0,0,60,124,3,0,0,22,61,62,10,19,0,0,62,63,7,5,0,0,63,
-  	124,3,0,0,20,64,65,10,18,0,0,65,66,7,6,0,0,66,124,3,0,0,19,67,68,10,17,
-  	0,0,68,69,7,7,0,0,69,124,3,0,0,18,70,71,10,10,0,0,71,72,7,8,0,0,72,73,
-  	7,4,0,0,73,74,7,8,0,0,74,124,3,0,0,11,75,76,10,9,0,0,76,77,7,9,0,0,77,
-  	78,7,4,0,0,78,79,7,9,0,0,79,124,3,0,0,10,80,81,10,8,0,0,81,82,7,10,0,
-  	0,82,124,3,0,0,9,83,84,10,7,0,0,84,85,7,11,0,0,85,124,3,0,0,8,86,87,10,
-  	6,0,0,87,88,5,22,0,0,88,124,3,0,0,7,89,90,10,5,0,0,90,91,5,24,0,0,91,
-  	124,3,0,0,6,92,93,10,4,0,0,93,94,5,23,0,0,94,124,3,0,0,5,95,96,10,3,0,
-  	0,96,97,5,25,0,0,97,124,3,0,0,4,98,99,10,2,0,0,99,100,5,26,0,0,100,124,
-  	3,0,0,3,101,102,10,22,0,0,102,103,5,12,0,0,103,124,5,43,0,0,104,105,10,
-  	16,0,0,105,106,7,12,0,0,106,107,5,3,0,0,107,112,3,0,0,0,108,109,5,4,0,
-  	0,109,111,3,0,0,0,110,108,1,0,0,0,111,114,1,0,0,0,112,110,1,0,0,0,112,
-  	113,1,0,0,0,113,116,1,0,0,0,114,112,1,0,0,0,115,117,5,4,0,0,116,115,1,
-  	0,0,0,116,117,1,0,0,0,117,118,1,0,0,0,118,119,5,5,0,0,119,124,1,0,0,0,
-  	120,121,10,15,0,0,121,122,7,12,0,0,122,124,5,31,0,0,123,58,1,0,0,0,123,
-  	61,1,0,0,0,123,64,1,0,0,0,123,67,1,0,0,0,123,70,1,0,0,0,123,75,1,0,0,
-  	0,123,80,1,0,0,0,123,83,1,0,0,0,123,86,1,0,0,0,123,89,1,0,0,0,123,92,
-  	1,0,0,0,123,95,1,0,0,0,123,98,1,0,0,0,123,101,1,0,0,0,123,104,1,0,0,0,
-  	123,120,1,0,0,0,124,127,1,0,0,0,125,123,1,0,0,0,125,126,1,0,0,0,126,1,
-  	1,0,0,0,127,125,1,0,0,0,7,19,23,56,112,116,123,125
+  	114,9,0,1,0,1,0,1,0,1,0,1,0,5,0,121,8,0,10,0,12,0,124,9,0,1,0,0,1,0,1,
+  	0,0,13,2,0,14,15,27,28,2,0,32,32,35,35,2,0,33,33,36,36,2,0,34,34,37,37,
+  	2,0,42,42,44,44,1,0,10,11,1,0,16,18,1,0,14,15,1,0,20,21,1,0,6,7,1,0,8,
+  	9,1,0,6,9,1,0,29,30,156,0,56,1,0,0,0,2,3,6,0,-1,0,3,57,5,40,0,0,4,57,
+  	5,41,0,0,5,57,5,39,0,0,6,57,5,43,0,0,7,57,5,42,0,0,8,57,5,44,0,0,9,10,
+  	5,1,0,0,10,11,3,0,0,0,11,12,5,2,0,0,12,57,1,0,0,0,13,14,5,3,0,0,14,19,
+  	3,0,0,0,15,16,5,4,0,0,16,18,3,0,0,0,17,15,1,0,0,0,18,21,1,0,0,0,19,17,
+  	1,0,0,0,19,20,1,0,0,0,20,23,1,0,0,0,21,19,1,0,0,0,22,24,5,4,0,0,23,22,
+  	1,0,0,0,23,24,1,0,0,0,24,25,1,0,0,0,25,26,5,5,0,0,26,57,1,0,0,0,27,28,
+  	7,0,0,0,28,57,3,0,0,19,29,30,7,1,0,0,30,31,5,1,0,0,31,32,3,0,0,0,32,33,
+  	5,4,0,0,33,34,3,0,0,0,34,35,5,2,0,0,35,57,1,0,0,0,36,37,7,2,0,0,37,38,
+  	5,1,0,0,38,39,3,0,0,0,39,40,5,4,0,0,40,41,3,0,0,0,41,42,5,2,0,0,42,57,
+  	1,0,0,0,43,44,7,3,0,0,44,45,5,1,0,0,45,46,3,0,0,0,46,47,5,4,0,0,47,48,
+  	3,0,0,0,48,49,5,2,0,0,49,57,1,0,0,0,50,51,5,38,0,0,51,52,5,1,0,0,52,53,
+  	7,4,0,0,53,57,5,2,0,0,54,55,5,13,0,0,55,57,3,0,0,1,56,2,1,0,0,0,56,4,
+  	1,0,0,0,56,5,1,0,0,0,56,6,1,0,0,0,56,7,1,0,0,0,56,8,1,0,0,0,56,9,1,0,
+  	0,0,56,13,1,0,0,0,56,27,1,0,0,0,56,29,1,0,0,0,56,36,1,0,0,0,56,43,1,0,
+  	0,0,56,50,1,0,0,0,56,54,1,0,0,0,57,122,1,0,0,0,58,59,10,21,0,0,59,60,
+  	5,19,0,0,60,121,3,0,0,22,61,62,10,20,0,0,62,63,7,5,0,0,63,121,3,0,0,21,
+  	64,65,10,18,0,0,65,66,7,6,0,0,66,121,3,0,0,19,67,68,10,17,0,0,68,69,7,
+  	7,0,0,69,121,3,0,0,18,70,71,10,16,0,0,71,72,7,8,0,0,72,121,3,0,0,17,73,
+  	74,10,9,0,0,74,75,7,9,0,0,75,76,7,4,0,0,76,77,7,9,0,0,77,121,3,0,0,10,
+  	78,79,10,8,0,0,79,80,7,10,0,0,80,81,7,4,0,0,81,82,7,10,0,0,82,121,3,0,
+  	0,9,83,84,10,7,0,0,84,85,7,11,0,0,85,121,3,0,0,8,86,87,10,6,0,0,87,88,
+  	5,22,0,0,88,121,3,0,0,7,89,90,10,5,0,0,90,91,5,24,0,0,91,121,3,0,0,6,
+  	92,93,10,4,0,0,93,94,5,23,0,0,94,121,3,0,0,5,95,96,10,3,0,0,96,97,5,25,
+  	0,0,97,121,3,0,0,4,98,99,10,2,0,0,99,100,5,26,0,0,100,121,3,0,0,3,101,
+  	102,10,22,0,0,102,103,5,12,0,0,103,121,5,43,0,0,104,105,10,15,0,0,105,
+  	106,7,12,0,0,106,107,5,1,0,0,107,112,3,0,0,0,108,109,5,4,0,0,109,111,
+  	3,0,0,0,110,108,1,0,0,0,111,114,1,0,0,0,112,110,1,0,0,0,112,113,1,0,0,
+  	0,113,115,1,0,0,0,114,112,1,0,0,0,115,116,5,2,0,0,116,121,1,0,0,0,117,
+  	118,10,14,0,0,118,119,7,12,0,0,119,121,5,31,0,0,120,58,1,0,0,0,120,61,
+  	1,0,0,0,120,64,1,0,0,0,120,67,1,0,0,0,120,70,1,0,0,0,120,73,1,0,0,0,120,
+  	78,1,0,0,0,120,83,1,0,0,0,120,86,1,0,0,0,120,89,1,0,0,0,120,92,1,0,0,
+  	0,120,95,1,0,0,0,120,98,1,0,0,0,120,101,1,0,0,0,120,104,1,0,0,0,120,117,
+  	1,0,0,0,121,124,1,0,0,0,122,120,1,0,0,0,122,123,1,0,0,0,123,1,1,0,0,0,
+  	124,122,1,0,0,0,6,19,23,56,112,120,122
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -1055,7 +1054,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
           consume();
         }
         setState(28);
-        expr(20);
+        expr(19);
         break;
       }
 
@@ -1185,17 +1184,17 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
       throw NoViableAltException(this);
     }
     _ctx->stop = _input->LT(-1);
-    setState(125);
+    setState(122);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         if (!_parseListeners.empty())
           triggerExitRuleEvent();
         previousContext = _localctx;
-        setState(123);
+        setState(120);
         _errHandler->sync(this);
-        switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx)) {
+        switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 4, _ctx)) {
         case 1: {
           auto newContext = _tracker.createInstance<PowerContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
@@ -1211,42 +1210,42 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
         }
 
         case 2: {
-          auto newContext = _tracker.createInstance<MulDivModContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
+          auto newContext = _tracker.createInstance<EqualityContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
           setState(61);
 
-          if (!(precpred(_ctx, 19))) throw FailedPredicateException(this, "precpred(_ctx, 19)");
+          if (!(precpred(_ctx, 20))) throw FailedPredicateException(this, "precpred(_ctx, 20)");
           setState(62);
-          antlrcpp::downCast<MulDivModContext *>(_localctx)->op = _input->LT(1);
+          antlrcpp::downCast<EqualityContext *>(_localctx)->op = _input->LT(1);
           _la = _input->LA(1);
-          if (!((((_la & ~ 0x3fULL) == 0) &&
-            ((1ULL << _la) & 458752) != 0))) {
-            antlrcpp::downCast<MulDivModContext *>(_localctx)->op = _errHandler->recoverInline(this);
+          if (!(_la == PlanParser::EQ
+
+          || _la == PlanParser::NE)) {
+            antlrcpp::downCast<EqualityContext *>(_localctx)->op = _errHandler->recoverInline(this);
           }
           else {
             _errHandler->reportMatch(this);
             consume();
           }
           setState(63);
-          expr(20);
+          expr(21);
           break;
         }
 
         case 3: {
-          auto newContext = _tracker.createInstance<AddSubContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
+          auto newContext = _tracker.createInstance<MulDivModContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
           setState(64);
 
           if (!(precpred(_ctx, 18))) throw FailedPredicateException(this, "precpred(_ctx, 18)");
           setState(65);
-          antlrcpp::downCast<AddSubContext *>(_localctx)->op = _input->LT(1);
+          antlrcpp::downCast<MulDivModContext *>(_localctx)->op = _input->LT(1);
           _la = _input->LA(1);
-          if (!(_la == PlanParser::ADD
-
-          || _la == PlanParser::SUB)) {
-            antlrcpp::downCast<AddSubContext *>(_localctx)->op = _errHandler->recoverInline(this);
+          if (!((((_la & ~ 0x3fULL) == 0) &&
+            ((1ULL << _la) & 458752) != 0))) {
+            antlrcpp::downCast<MulDivModContext *>(_localctx)->op = _errHandler->recoverInline(this);
           }
           else {
             _errHandler->reportMatch(this);
@@ -1258,19 +1257,19 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
         }
 
         case 4: {
-          auto newContext = _tracker.createInstance<ShiftContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
+          auto newContext = _tracker.createInstance<AddSubContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
           setState(67);
 
           if (!(precpred(_ctx, 17))) throw FailedPredicateException(this, "precpred(_ctx, 17)");
           setState(68);
-          antlrcpp::downCast<ShiftContext *>(_localctx)->op = _input->LT(1);
+          antlrcpp::downCast<AddSubContext *>(_localctx)->op = _input->LT(1);
           _la = _input->LA(1);
-          if (!(_la == PlanParser::SHL
+          if (!(_la == PlanParser::ADD
 
-          || _la == PlanParser::SHR)) {
-            antlrcpp::downCast<ShiftContext *>(_localctx)->op = _errHandler->recoverInline(this);
+          || _la == PlanParser::SUB)) {
+            antlrcpp::downCast<AddSubContext *>(_localctx)->op = _errHandler->recoverInline(this);
           }
           else {
             _errHandler->reportMatch(this);
@@ -1282,13 +1281,37 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
         }
 
         case 5: {
-          auto newContext = _tracker.createInstance<RangeContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
+          auto newContext = _tracker.createInstance<ShiftContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
           setState(70);
 
-          if (!(precpred(_ctx, 10))) throw FailedPredicateException(this, "precpred(_ctx, 10)");
+          if (!(precpred(_ctx, 16))) throw FailedPredicateException(this, "precpred(_ctx, 16)");
           setState(71);
+          antlrcpp::downCast<ShiftContext *>(_localctx)->op = _input->LT(1);
+          _la = _input->LA(1);
+          if (!(_la == PlanParser::SHL
+
+          || _la == PlanParser::SHR)) {
+            antlrcpp::downCast<ShiftContext *>(_localctx)->op = _errHandler->recoverInline(this);
+          }
+          else {
+            _errHandler->reportMatch(this);
+            consume();
+          }
+          setState(72);
+          expr(17);
+          break;
+        }
+
+        case 6: {
+          auto newContext = _tracker.createInstance<RangeContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
+          _localctx = newContext;
+          pushNewRecursionContext(newContext, startState, RuleExpr);
+          setState(73);
+
+          if (!(precpred(_ctx, 9))) throw FailedPredicateException(this, "precpred(_ctx, 9)");
+          setState(74);
           antlrcpp::downCast<RangeContext *>(_localctx)->op1 = _input->LT(1);
           _la = _input->LA(1);
           if (!(_la == PlanParser::LT
@@ -1300,7 +1323,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(72);
+          setState(75);
           _la = _input->LA(1);
           if (!(_la == PlanParser::Identifier
 
@@ -1311,7 +1334,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(73);
+          setState(76);
           antlrcpp::downCast<RangeContext *>(_localctx)->op2 = _input->LT(1);
           _la = _input->LA(1);
           if (!(_la == PlanParser::LT
@@ -1323,19 +1346,19 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(74);
-          expr(11);
+          setState(77);
+          expr(10);
           break;
         }
 
-        case 6: {
+        case 7: {
           auto newContext = _tracker.createInstance<ReverseRangeContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
-          setState(75);
+          setState(78);
 
-          if (!(precpred(_ctx, 9))) throw FailedPredicateException(this, "precpred(_ctx, 9)");
-          setState(76);
+          if (!(precpred(_ctx, 8))) throw FailedPredicateException(this, "precpred(_ctx, 8)");
+          setState(79);
           antlrcpp::downCast<ReverseRangeContext *>(_localctx)->op1 = _input->LT(1);
           _la = _input->LA(1);
           if (!(_la == PlanParser::GT
@@ -1347,7 +1370,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(77);
+          setState(80);
           _la = _input->LA(1);
           if (!(_la == PlanParser::Identifier
 
@@ -1358,7 +1381,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(78);
+          setState(81);
           antlrcpp::downCast<ReverseRangeContext *>(_localctx)->op2 = _input->LT(1);
           _la = _input->LA(1);
           if (!(_la == PlanParser::GT
@@ -1370,48 +1393,24 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(79);
-          expr(10);
-          break;
-        }
-
-        case 7: {
-          auto newContext = _tracker.createInstance<RelationalContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
-          _localctx = newContext;
-          pushNewRecursionContext(newContext, startState, RuleExpr);
-          setState(80);
-
-          if (!(precpred(_ctx, 8))) throw FailedPredicateException(this, "precpred(_ctx, 8)");
-          setState(81);
-          antlrcpp::downCast<RelationalContext *>(_localctx)->op = _input->LT(1);
-          _la = _input->LA(1);
-          if (!((((_la & ~ 0x3fULL) == 0) &&
-            ((1ULL << _la) & 960) != 0))) {
-            antlrcpp::downCast<RelationalContext *>(_localctx)->op = _errHandler->recoverInline(this);
-          }
-          else {
-            _errHandler->reportMatch(this);
-            consume();
-          }
           setState(82);
           expr(9);
           break;
         }
 
         case 8: {
-          auto newContext = _tracker.createInstance<EqualityContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
+          auto newContext = _tracker.createInstance<RelationalContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
           setState(83);
 
           if (!(precpred(_ctx, 7))) throw FailedPredicateException(this, "precpred(_ctx, 7)");
           setState(84);
-          antlrcpp::downCast<EqualityContext *>(_localctx)->op = _input->LT(1);
+          antlrcpp::downCast<RelationalContext *>(_localctx)->op = _input->LT(1);
           _la = _input->LA(1);
-          if (!(_la == PlanParser::EQ
-
-          || _la == PlanParser::NE)) {
-            antlrcpp::downCast<EqualityContext *>(_localctx)->op = _errHandler->recoverInline(this);
+          if (!((((_la & ~ 0x3fULL) == 0) &&
+            ((1ULL << _la) & 960) != 0))) {
+            antlrcpp::downCast<RelationalContext *>(_localctx)->op = _errHandler->recoverInline(this);
           }
           else {
             _errHandler->reportMatch(this);
@@ -1512,7 +1511,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
           pushNewRecursionContext(newContext, startState, RuleExpr);
           setState(104);
 
-          if (!(precpred(_ctx, 16))) throw FailedPredicateException(this, "precpred(_ctx, 16)");
+          if (!(precpred(_ctx, 15))) throw FailedPredicateException(this, "precpred(_ctx, 15)");
           setState(105);
           antlrcpp::downCast<TermContext *>(_localctx)->op = _input->LT(1);
           _la = _input->LA(1);
@@ -1525,35 +1524,24 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-
           setState(106);
-          match(PlanParser::T__2);
+          match(PlanParser::T__0);
           setState(107);
           expr(0);
           setState(112);
           _errHandler->sync(this);
-          alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 3, _ctx);
-          while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
-            if (alt == 1) {
-              setState(108);
-              match(PlanParser::T__3);
-              setState(109);
-              expr(0); 
-            }
+          _la = _input->LA(1);
+          while (_la == PlanParser::T__3) {
+            setState(108);
+            match(PlanParser::T__3);
+            setState(109);
+            expr(0);
             setState(114);
             _errHandler->sync(this);
-            alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 3, _ctx);
+            _la = _input->LA(1);
           }
-          setState(116);
-          _errHandler->sync(this);
-
-          _la = _input->LA(1);
-          if (_la == PlanParser::T__3) {
-            setState(115);
-            match(PlanParser::T__3);
-          }
-          setState(118);
-          match(PlanParser::T__4);
+          setState(115);
+          match(PlanParser::T__1);
           break;
         }
 
@@ -1561,10 +1549,10 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
           auto newContext = _tracker.createInstance<EmptyTermContext>(_tracker.createInstance<ExprContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpr);
-          setState(120);
+          setState(117);
 
-          if (!(precpred(_ctx, 15))) throw FailedPredicateException(this, "precpred(_ctx, 15)");
-          setState(121);
+          if (!(precpred(_ctx, 14))) throw FailedPredicateException(this, "precpred(_ctx, 14)");
+          setState(118);
           antlrcpp::downCast<EmptyTermContext *>(_localctx)->op = _input->LT(1);
           _la = _input->LA(1);
           if (!(_la == PlanParser::IN
@@ -1576,7 +1564,7 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
             _errHandler->reportMatch(this);
             consume();
           }
-          setState(122);
+          setState(119);
           match(PlanParser::EmptyTerm);
           break;
         }
@@ -1585,9 +1573,9 @@ PlanParser::ExprContext* PlanParser::expr(int precedence) {
           break;
         } 
       }
-      setState(127);
+      setState(124);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx);
     }
   }
   catch (RecognitionException &e) {
@@ -1611,10 +1599,10 @@ bool PlanParser::sempred(RuleContext *context, size_t ruleIndex, size_t predicat
 bool PlanParser::exprSempred(ExprContext *_localctx, size_t predicateIndex) {
   switch (predicateIndex) {
     case 0: return precpred(_ctx, 21);
-    case 1: return precpred(_ctx, 19);
+    case 1: return precpred(_ctx, 20);
     case 2: return precpred(_ctx, 18);
     case 3: return precpred(_ctx, 17);
-    case 4: return precpred(_ctx, 10);
+    case 4: return precpred(_ctx, 16);
     case 5: return precpred(_ctx, 9);
     case 6: return precpred(_ctx, 8);
     case 7: return precpred(_ctx, 7);
@@ -1624,8 +1612,8 @@ bool PlanParser::exprSempred(ExprContext *_localctx, size_t predicateIndex) {
     case 11: return precpred(_ctx, 3);
     case 12: return precpred(_ctx, 2);
     case 13: return precpred(_ctx, 22);
-    case 14: return precpred(_ctx, 16);
-    case 15: return precpred(_ctx, 15);
+    case 14: return precpred(_ctx, 15);
+    case 15: return precpred(_ctx, 14);
 
   default:
     break;

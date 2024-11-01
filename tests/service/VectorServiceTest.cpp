@@ -1,7 +1,7 @@
-// VectorDTOTest.cpp
+// VectorServiceTest.cpp
 
 #include <gtest/gtest.h>
-#include "dto/VectorDTO.hpp"
+#include "service/VectorService.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
@@ -16,13 +16,13 @@
 #include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace atinyvectors::algo;
 using namespace atinyvectors::utils;
 using namespace nlohmann;
 
 // Test Fixture class
-class VectorDTOManagerTest : public ::testing::Test {
+class VectorServiceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         IdCache::getInstance().clean();
@@ -75,7 +75,7 @@ protected:
     }
 };
 
-TEST_F(VectorDTOManagerTest, UpsertVectorsWithJson) {
+TEST_F(VectorServiceManagerTest, UpsertVectorsWithJson) {
     // Set up necessary default Space and Version
     Space defaultSpace(0, "default_space", "Default Space Description", 0, 0);
     int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
@@ -98,7 +98,7 @@ TEST_F(VectorDTOManagerTest, UpsertVectorsWithJson) {
         defaultIndexId = vectorIndices[0].id;
     }
 
-    VectorDTOManager manager;
+    VectorServiceManager manager;
 
     // Prepare JSON with both Dense and Sparse vectors
     std::string updateJson = R"({
@@ -151,7 +151,7 @@ TEST_F(VectorDTOManagerTest, UpsertVectorsWithJson) {
     EXPECT_EQ(metadataList2[0].value, "Los Angeles");
 }
 
-TEST_F(VectorDTOManagerTest, UpsertStandaloneDenseAndSparseVectors) {
+TEST_F(VectorServiceManagerTest, UpsertStandaloneDenseAndSparseVectors) {
     // Set up necessary default Space and Version
     Space defaultSpace(0, "default_space", "Default Space Description", 0, 0);
     int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
@@ -174,7 +174,7 @@ TEST_F(VectorDTOManagerTest, UpsertStandaloneDenseAndSparseVectors) {
         defaultIndexId = vectorIndices[0].id;
     }
 
-    VectorDTOManager manager;
+    VectorServiceManager manager;
 
     // Prepare JSON with standalone Dense and Sparse vectors
     std::string updateJson = R"({

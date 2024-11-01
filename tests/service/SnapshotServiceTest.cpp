@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "dto/SnapshotDTO.hpp"
-#include "dto/SearchDTO.hpp"
-#include "dto/SpaceDTO.hpp"
-#include "dto/VectorDTO.hpp"
+#include "service/SnapshotService.hpp"
+#include "service/SearchService.hpp"
+#include "service/SpaceService.hpp"
+#include "service/VectorService.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
@@ -17,13 +17,13 @@
 #include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace atinyvectors::algo;
 using namespace atinyvectors::utils;
 using namespace nlohmann;
 
-// Fixture for SnapshotDTOManager tests
-class SnapshotDTOManagerTest : public ::testing::Test {
+// Fixture for SnapshotServiceManager tests
+class SnapshotServiceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         IdCache::getInstance().clean();
@@ -85,7 +85,7 @@ protected:
 };
 
 // Test for creating a snapshot with a given space name and version unique ID
-TEST_F(SnapshotDTOManagerTest, CreateSnapshot) {
+TEST_F(SnapshotServiceManagerTest, CreateSnapshot) {
     // Create a space
     std::string inputJson = R"({
         "name": "CreateSnapshot",
@@ -97,8 +97,8 @@ TEST_F(SnapshotDTOManagerTest, CreateSnapshot) {
         }
     })";
 
-    SpaceDTOManager spaceDTOManager;
-    spaceDTOManager.createSpace(inputJson);
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
 
     // Insert some vectors for search
     std::string vectorDataJson = R"({
@@ -116,11 +116,11 @@ TEST_F(SnapshotDTOManagerTest, CreateSnapshot) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("CreateSnapshot", 1, vectorDataJson);
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("CreateSnapshot", 1, vectorDataJson);
 
     // Create a snapshot using the DTO manager
-    SnapshotDTOManager manager;
+    SnapshotServiceManager manager;
     std::string snapshotInputJson = R"({
         "CreateSnapshot": 1
     })";
@@ -133,7 +133,7 @@ TEST_F(SnapshotDTOManagerTest, CreateSnapshot) {
 }
 
 // Test for restoring a snapshot using file name
-TEST_F(SnapshotDTOManagerTest, RestoreSnapshot) {
+TEST_F(SnapshotServiceManagerTest, RestoreSnapshot) {
     // Create a space
     std::string inputJson = R"({
         "name": "RestoreSnapshot",
@@ -145,8 +145,8 @@ TEST_F(SnapshotDTOManagerTest, RestoreSnapshot) {
         }
     })";
 
-    SpaceDTOManager spaceDTOManager;
-    spaceDTOManager.createSpace(inputJson);
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
 
     // Insert some vectors for search
     std::string vectorDataJson = R"({
@@ -164,11 +164,11 @@ TEST_F(SnapshotDTOManagerTest, RestoreSnapshot) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("RestoreSnapshot", 1, vectorDataJson);
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("RestoreSnapshot", 1, vectorDataJson);
 
     // Create a snapshot
-    SnapshotDTOManager manager;
+    SnapshotServiceManager manager;
     std::string snapshotInputJson = R"({
         "RestoreSnapshot": 1
     })";
@@ -196,7 +196,7 @@ TEST_F(SnapshotDTOManagerTest, RestoreSnapshot) {
     manager.restoreSnapshot(fileName);
 
     // Verify that the data is restored correctly
-    json spaceJson = spaceDTOManager.getBySpaceName("RestoreSnapshot");
+    json spaceJson = spaceServiceManager.getBySpaceName("RestoreSnapshot");
 
     // Validate the JSON output
     ASSERT_EQ(spaceJson["name"], "RestoreSnapshot");
@@ -206,15 +206,15 @@ TEST_F(SnapshotDTOManagerTest, RestoreSnapshot) {
         "vector": [0.25, 0.45, 0.75, 0.85]
     })";
 
-    SearchDTOManager searchDTOManager;
-    auto searchResults = searchDTOManager.search("RestoreSnapshot", 0, queryJsonStr, 2); // default version
+    SearchServiceManager searchServiceManager;
+    auto searchResults = searchServiceManager.search("RestoreSnapshot", 0, queryJsonStr, 2); // default version
 
     // Validate that two results are returned
     ASSERT_EQ(searchResults.size(), 2);
 }
 
 // Test for listing snapshots
-TEST_F(SnapshotDTOManagerTest, ListSnapshots) {
+TEST_F(SnapshotServiceManagerTest, ListSnapshots) {
     // Create a space
     std::string inputJson = R"({
         "name": "ListSnapshots",
@@ -226,8 +226,8 @@ TEST_F(SnapshotDTOManagerTest, ListSnapshots) {
         }
     })";
 
-    SpaceDTOManager spaceDTOManager;
-    spaceDTOManager.createSpace(inputJson);
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
 
     // Insert some vectors for search
     std::string vectorDataJson = R"({
@@ -245,11 +245,11 @@ TEST_F(SnapshotDTOManagerTest, ListSnapshots) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("ListSnapshots", 1, vectorDataJson);
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("ListSnapshots", 1, vectorDataJson);
 
     // Create a snapshot
-    SnapshotDTOManager manager;
+    SnapshotServiceManager manager;
     std::string snapshotInputJson = R"({
         "ListSnapshots": 1
     })";
@@ -262,7 +262,7 @@ TEST_F(SnapshotDTOManagerTest, ListSnapshots) {
 }
 
 // Test for deleting snapshots
-TEST_F(SnapshotDTOManagerTest, DeleteSnapshots) {
+TEST_F(SnapshotServiceManagerTest, DeleteSnapshots) {
     // Create a space
     std::string inputJson = R"({
         "name": "DeleteSnapshots",
@@ -274,8 +274,8 @@ TEST_F(SnapshotDTOManagerTest, DeleteSnapshots) {
         }
     })";
 
-    SpaceDTOManager spaceDTOManager;
-    spaceDTOManager.createSpace(inputJson);
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
 
     // Insert some vectors for search
     std::string vectorDataJson = R"({
@@ -293,11 +293,11 @@ TEST_F(SnapshotDTOManagerTest, DeleteSnapshots) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("DeleteSnapshots", 1, vectorDataJson);
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("DeleteSnapshots", 1, vectorDataJson);
 
     // Create a snapshot
-    SnapshotDTOManager manager;
+    SnapshotServiceManager manager;
     std::string snapshotInputJson = R"({
         "DeleteSnapshots": 1
     })";
@@ -313,4 +313,69 @@ TEST_F(SnapshotDTOManagerTest, DeleteSnapshots) {
     // Verify snapshots are deleted
     snapshotList = manager.listSnapshots();
     ASSERT_EQ(snapshotList["snapshots"].size(), 0);
+}
+
+TEST_F(SnapshotServiceManagerTest, DeleteSnapshotByFileName) {
+    // Create a space
+    std::string inputJson = R"({
+        "name": "DeleteSnapshotTest",
+        "dimension": 4,
+        "metric": "L2",
+        "hnsw_config": {
+            "M": 16,
+            "ef_construct": 100
+        }
+    })";
+
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
+
+    // Insert some vectors for search
+    std::string vectorDataJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"category": "A"}
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"category": "B"}
+            }
+        ]
+    })";
+
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("DeleteSnapshotTest", 1, vectorDataJson);
+
+    // Create a snapshot
+    SnapshotServiceManager manager;
+    std::string snapshotInputJson = R"({
+        "DeleteSnapshotTest": 1
+    })";
+    manager.createSnapshot(snapshotInputJson);
+
+    // Get the created snapshot file name
+    auto snapshotList = manager.listSnapshots();
+    ASSERT_TRUE(snapshotList.contains("snapshots"));
+    ASSERT_GT(snapshotList["snapshots"].size(), 0);
+
+    // Extract the file name
+    std::string fileName = snapshotList["snapshots"][0]["file_name"];
+    ASSERT_FALSE(fileName.empty());
+
+    // Delete the specific snapshot by filename
+    manager.deleteSnapshot(fileName);
+
+    // List snapshots again and verify that the file is deleted
+    snapshotList = manager.listSnapshots();
+    bool fileFound = false;
+    for (const auto& snapshot : snapshotList["snapshots"]) {
+        if (snapshot["file_name"] == fileName) {
+            fileFound = true;
+            break;
+        }
+    }
+    ASSERT_FALSE(fileFound) << "The snapshot file " << fileName << " was not deleted as expected.";
 }

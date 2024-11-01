@@ -1,5 +1,11 @@
 #include "VectorMetadata.hpp"
 #include "DatabaseManager.hpp"
+#include "filter/FilterManager.hpp"
+#include "spdlog/spdlog.h"
+
+#include <sstream>
+
+using namespace atinyvectors::filter;
 
 namespace atinyvectors {
 
@@ -26,6 +32,7 @@ std::vector<VectorMetadata> executeSelectQuery(SQLite::Statement& query) {
     }
     return metadataList;
 }
+
 } // anonymous namespace
 
 std::unique_ptr<VectorMetadataManager> VectorMetadataManager::instance;
@@ -129,6 +136,64 @@ void VectorMetadataManager::deleteVectorMetadataByVectorId(long vectorId) {
     query.exec();
 
     transaction.commit();
+}
+
+std::vector<std::pair<float, hnswlib::labeltype>> VectorMetadataManager::filterVectors(
+    const std::vector<std::pair<float, hnswlib::labeltype>>& inputVectors,
+    const std::string& filter) {
+    auto& db = DatabaseManager::getInstance().getDatabase();
+    std::vector<std::pair<float, hnswlib::labeltype>> filteredVectors;
+    std::string sqlFilter = FilterManager::getInstance().toSQL(filter);
+
+    std::stringstream uniqueIdListStream;
+    uniqueIdListStream << "(";
+    for (size_t i = 0; i < inputVectors.size(); ++i) {
+        uniqueIdListStream << inputVectors[i].second;
+        if (i < inputVectors.size() - 1) {
+            uniqueIdListStream << ", ";
+        }
+    }
+    uniqueIdListStream << ")";
+    std::string uniqueIdList = uniqueIdListStream.str();
+
+    std::string idQueryStr = "SELECT V.id, V.unique_id FROM Vector V WHERE V.unique_id IN " + uniqueIdList;
+    SQLite::Statement idQuery(db, idQueryStr);
+
+    std::unordered_map<long, long> uniqueIdToRealId;
+    while (idQuery.executeStep()) {
+        long id = idQuery.getColumn(0).getInt64();
+        long uniqueId = idQuery.getColumn(1).getInt64();
+        uniqueIdToRealId[uniqueId] = id;
+    }
+
+    std::stringstream idListStream;
+    idListStream << "(";
+    for (auto it = uniqueIdToRealId.begin(); it != uniqueIdToRealId.end(); ++it) {
+        idListStream << it->second;
+        if (std::next(it) != uniqueIdToRealId.end()) {
+            idListStream << ", ";
+        }
+    }
+    idListStream << ")";
+    std::string idList = idListStream.str();
+
+    std::string filterQueryStr = "SELECT VectorMetadata.vectorId FROM VectorMetadata WHERE VectorMetadata.vectorId IN " + idList + " AND " + sqlFilter;
+    SQLite::Statement filterQuery(db, filterQueryStr);
+
+    std::unordered_set<long> validRealIds;
+    while (filterQuery.executeStep()) {
+        long validId = filterQuery.getColumn(0).getInt64();
+        validRealIds.insert(validId);
+    }
+
+    for (const auto& vec : inputVectors) {
+        auto it = uniqueIdToRealId.find(vec.second);
+        if (it != uniqueIdToRealId.end() && validRealIds.find(it->second) != validRealIds.end()) {
+            filteredVectors.push_back(vec);
+        }
+    }
+
+    return filteredVectors;
 }
 
 } // namespace atinyvectors

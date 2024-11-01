@@ -1,4 +1,4 @@
-#include "dto/VersionDTO.hpp"
+#include "service/VersionService.hpp"
 
 #include <string>
 #include <SQLiteCpp/SQLiteCpp.h>
@@ -18,7 +18,7 @@ using namespace nlohmann;
 
 namespace atinyvectors
 {
-namespace dto
+namespace service
 {
 namespace
 {
@@ -43,7 +43,7 @@ nlohmann::json fetchVersionDetails(const Version& version) {
 
 } // anonymous namespace
 
-void VersionDTOManager::createVersion(const std::string& spaceName, const std::string& jsonStr) {
+void VersionServiceManager::createVersion(const std::string& spaceName, const std::string& jsonStr) {
     spdlog::info("Starting createVersion for spaceName: {}", spaceName);
 
     // Fetch the space using the space name
@@ -53,8 +53,6 @@ void VersionDTOManager::createVersion(const std::string& spaceName, const std::s
             spdlog::error("Space with name '{}' not found.", spaceName);
             throw std::runtime_error("Space not found.");
         }
-
-        spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
 
         json parsedJson = json::parse(jsonStr);
 
@@ -75,24 +73,18 @@ void VersionDTOManager::createVersion(const std::string& spaceName, const std::s
         // Create and add Version
         Version version(0, space.id, 0, versionName, versionDescription, versionTag, 0, 0, true);
         int versionId = VersionManager::getInstance().addVersion(version);
-
-        spdlog::info("Version created successfully with versionId: {}", versionId);
-
     } catch (const std::exception& e) {
         spdlog::error("Exception occurred in createVersion for spaceName: {}. Error: {}", spaceName, e.what());
         throw;
     }
 }
 
-nlohmann::json VersionDTOManager::getByVersionId(const std::string& spaceName, int versionUniqueId) {
-    spdlog::info("Starting getByVersionId for spaceName: {}, versionUniqueId: {}", spaceName, versionUniqueId);
-
+nlohmann::json VersionServiceManager::getByVersionId(const std::string& spaceName, int versionUniqueId) {
     try {
         int versionId = IdCache::getInstance().getVersionId(spaceName, versionUniqueId);
 
         // Get version by spaceId and unique_id
         auto version = VersionManager::getInstance().getVersionById(versionId);
-        spdlog::info("Found version with unique_id: {}, name: {}", version.unique_id, version.name);
 
         return fetchVersionDetails(version);
     } catch (const std::exception& e) {
@@ -101,17 +93,13 @@ nlohmann::json VersionDTOManager::getByVersionId(const std::string& spaceName, i
     }
 }
 
-nlohmann::json VersionDTOManager::getByVersionName(const std::string& spaceName, const std::string& versionName) {
-    spdlog::info("Starting getByVersionName for spaceName: {}, versionName: {}", spaceName, versionName);
-
+nlohmann::json VersionServiceManager::getByVersionName(const std::string& spaceName, const std::string& versionName) {
     try {
         auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
         if (space.id <= 0) {
             spdlog::error("Space with name '{}' not found.", spaceName);
             throw std::runtime_error("Space not found.");
         }
-
-        spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
 
         auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
         for (const auto& version : versions) {
@@ -128,9 +116,7 @@ nlohmann::json VersionDTOManager::getByVersionName(const std::string& spaceName,
     }
 }
 
-nlohmann::json VersionDTOManager::getLists(const std::string& spaceName) {
-    spdlog::info("Starting getLists for spaceName: {}", spaceName);
-
+nlohmann::json VersionServiceManager::getLists(const std::string& spaceName) {
     try {
         auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
         if (space.id <= 0) {
@@ -160,17 +146,13 @@ nlohmann::json VersionDTOManager::getLists(const std::string& spaceName) {
     }
 }
 
-nlohmann::json VersionDTOManager::getDefaultVersion(const std::string& spaceName) {
-    spdlog::info("Starting getDefaultVersion for spaceName: {}", spaceName);
-
+nlohmann::json VersionServiceManager::getDefaultVersion(const std::string& spaceName) {
     try {
         auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
         if (space.id <= 0) {
             spdlog::error("Space with name '{}' not found.", spaceName);
             throw std::runtime_error("Space not found.");
         }
-
-        spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
 
         Version defaultVersion = VersionManager::getInstance().getDefaultVersion(space.id);
         return fetchVersionDetails(defaultVersion);

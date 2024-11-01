@@ -1,21 +1,21 @@
 #include "atinyvectors_c_api.h"
-#include "dto/SearchDTO.hpp"
+#include "service/SearchService.hpp"
 #include <cstring>
 #include <iostream>
 #include "nlohmann/json.hpp"
 
-// C API for SearchDTOManager
-SearchDTOManager* atv_search_dto_manager_new() {
-    return reinterpret_cast<SearchDTOManager*>(new atinyvectors::dto::SearchDTOManager());
+// C API for SearchServiceManager
+SearchServiceManager* atv_search_service_manager_new() {
+    return reinterpret_cast<SearchServiceManager*>(new atinyvectors::service::SearchServiceManager());
 }
 
-void atv_search_dto_manager_free(SearchDTOManager* manager) {
-    delete reinterpret_cast<atinyvectors::dto::SearchDTOManager*>(manager);
+void atv_search_service_manager_free(SearchServiceManager* manager) {
+    delete reinterpret_cast<atinyvectors::service::SearchServiceManager*>(manager);
 }
 
-char* atv_search_dto_search(SearchDTOManager* manager, const char* spaceName, const int versionUniqueId, const char* queryJsonStr, size_t k) {
+char* atv_search_service_search(SearchServiceManager* manager, const char* spaceName, const int versionUniqueId, const char* queryJsonStr, size_t k) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::SearchDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::SearchServiceManager*>(manager);
         std::vector<std::pair<float, hnswlib::labeltype>> results = cppManager->search(spaceName, versionUniqueId, queryJsonStr, k);
         nlohmann::json jsonResult = cppManager->extractSearchResultsToJson(results);
         

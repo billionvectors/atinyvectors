@@ -1,4 +1,4 @@
-#include "dto/SpaceDTO.hpp"
+#include "service/SpaceService.hpp"
 #include "utils/Utils.hpp"
 
 #include "Space.hpp"
@@ -26,7 +26,7 @@ using namespace atinyvectors::utils;
 
 namespace atinyvectors
 {
-namespace dto
+namespace service
 {
 namespace
 {
@@ -197,16 +197,12 @@ int createSparseVectorIndex(int versionId, const std::string& name, const std::s
 }
 
 nlohmann::json fetchSpaceDetails(const Space& space) {
-    spdlog::info("Fetching details for spaceId: {}, name: {}", space.id, space.name);
-
     nlohmann::json result;
 
     result["spaceId"] = space.id;
     result["name"] = space.name;
     result["created_time_utc"] = space.created_time_utc;
     result["updated_time_utc"] = space.updated_time_utc;
-
-    spdlog::info("Space created at: {}, updated at: {}", space.created_time_utc, space.updated_time_utc);
 
     auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
     if (versions.empty()) {
@@ -218,11 +214,7 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
     nlohmann::json versionJson;
     versionJson["versionId"] = version.unique_id;
 
-    spdlog::info("Found versionId: {} for spaceId: {}", version.unique_id, space.id);
-
-    auto vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(version.id);
-    spdlog::info("Found {} vector indices for versionId: {}", vectorIndices.size(), version.id);
-    
+    auto vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(version.id);    
     nlohmann::json vectorIndicesJson = nlohmann::json::array();
 
     for (const auto& vectorIndex : vectorIndices) {
@@ -246,8 +238,6 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
     versionJson["vectorIndices"] = vectorIndicesJson;
     result["version"] = versionJson;
 
-    spdlog::info("Successfully fetched space details for spaceId: {}", space.id);
-
     return result;
 }
 
@@ -265,7 +255,6 @@ void updateDefaultDenseIndex(const json& parsedJson, int versionId, int spaceId)
     const std::string& defaultDenseIndexName = Config::getInstance().getDefaultDenseIndexName();
 
     if (!parsedJson.contains(defaultDenseIndexName)) {
-        spdlog::info("No dense configuration found in update JSON.");
         return;
     }
 
@@ -306,14 +295,12 @@ void updateDefaultDenseIndex(const json& parsedJson, int versionId, int spaceId)
     }
 
     VectorIndexManager::getInstance().updateVectorIndex(*denseIndex);
-    spdlog::info("Successfully updated dense vector index '{}'.", denseIndex->name);
 }
 
 void updateDefaultSparseIndex(const json& parsedJson, int versionId, int spaceId) {
     const std::string& defaultSparseIndexName = Config::getInstance().getDefaultSparseIndexName();
 
     if (!parsedJson.contains(defaultSparseIndexName)) {
-        spdlog::info("No sparse configuration found in update JSON.");
         return;
     }
 
@@ -338,12 +325,10 @@ void updateDefaultSparseIndex(const json& parsedJson, int versionId, int spaceId
     }
 
     VectorIndexManager::getInstance().updateVectorIndex(*sparseIndex);
-    spdlog::info("Successfully updated sparse vector index '{}'.", sparseIndex->name);
 }
 
 void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId) {
     if (!parsedJson.contains("indexes")) {
-        spdlog::info("No additional indexes found in update JSON.");
         return;
     }
 
@@ -375,7 +360,6 @@ void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId)
             }
 
             createDenseVectorIndex(versionId, indexName, dimension, metric, hnswConfig, quantizationConfig, false);
-            spdlog::info("Successfully created new vector index '{}'.", indexName);
         } else {
             if (indexJson.contains("dimension")) {
                 targetIndex->dimension = indexJson["dimension"];
@@ -407,14 +391,13 @@ void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId)
             }
 
             VectorIndexManager::getInstance().updateVectorIndex(*targetIndex);
-            spdlog::info("Successfully updated vector index '{}'.", targetIndex->name);
         }
     }
 }
 
 } // anonymous namespace
 
-void SpaceDTOManager::createSpace(const std::string& jsonStr) {
+void SpaceServiceManager::createSpace(const std::string& jsonStr) {
     json parsedJson = json::parse(jsonStr);
 
     std::string spaceName = "Default Space";
@@ -435,7 +418,7 @@ void SpaceDTOManager::createSpace(const std::string& jsonStr) {
     processIndexesConfiguration(parsedJson, versionId);
 }
 
-void SpaceDTOManager::deleteSpace(const std::string& spaceName, const std::string& jsonStr) {
+void SpaceServiceManager::deleteSpace(const std::string& spaceName, const std::string& jsonStr) {
     spdlog::info("Starting deleteSpace for spaceName: {}", spaceName);
 
     try {
@@ -454,17 +437,13 @@ void SpaceDTOManager::deleteSpace(const std::string& spaceName, const std::strin
     }
 }
 
-nlohmann::json SpaceDTOManager::getBySpaceId(int spaceId) {
-    spdlog::info("Starting getBySpaceId for spaceId: {}", spaceId);
-
+nlohmann::json SpaceServiceManager::getBySpaceId(int spaceId) {
     try {
         auto space = SpaceManager::getInstance().getSpaceById(spaceId);
         if (space.id != spaceId) {
             spdlog::error("Space with spaceId: {} not found.", spaceId);
             throw std::runtime_error("Space not found.");
         }
-
-        spdlog::info("Found space with spaceId: {}, name: {}", space.id, space.name);
 
         return fetchSpaceDetails(space);
     } catch (const std::exception& e) {
@@ -473,17 +452,13 @@ nlohmann::json SpaceDTOManager::getBySpaceId(int spaceId) {
     }
 }
 
-nlohmann::json SpaceDTOManager::getBySpaceName(const std::string& spaceName) {
-    spdlog::info("Starting getBySpaceName for spaceName: {}", spaceName);
-
+nlohmann::json SpaceServiceManager::getBySpaceName(const std::string& spaceName) {
     try {
         auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
         if (space.id <= 0) {
             spdlog::error("Space with name '{}' not found.", spaceName);
             throw std::runtime_error("Space not found.");
         }
-
-        spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
 
         return fetchSpaceDetails(space);
     } catch (const std::exception& e) {
@@ -492,7 +467,7 @@ nlohmann::json SpaceDTOManager::getBySpaceName(const std::string& spaceName) {
     }
 }
 
-nlohmann::json SpaceDTOManager::getLists() {
+nlohmann::json SpaceServiceManager::getLists() {
     nlohmann::json result;
     nlohmann::json values = nlohmann::json::array();
 
@@ -509,7 +484,7 @@ nlohmann::json SpaceDTOManager::getLists() {
     return result;
 }
 
-void SpaceDTOManager::updateSpace(const std::string& spaceName, const std::string& jsonStr) {
+void SpaceServiceManager::updateSpace(const std::string& spaceName, const std::string& jsonStr) {
     spdlog::info("Starting updateSpace for spaceName: {}", spaceName);
 
     try {

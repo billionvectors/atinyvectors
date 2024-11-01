@@ -1,5 +1,5 @@
-#ifndef __ATINYVECTORS_SPACE_DTO_HPP__
-#define __ATINYVECTORS_SPACE_DTO_HPP__
+#ifndef __ATINYVECTORS_SPACE_SERVICE_HPP__
+#define __ATINYVECTORS_SPACE_SERVICE_HPP__
 
 #include <iostream>
 #include <string>
@@ -10,10 +10,10 @@ using namespace std;
 
 namespace atinyvectors
 {
-namespace dto
+namespace service
 {
 
-class SpaceDTOManager {
+class SpaceServiceManager {
 public:
     void createSpace(const std::string& jsonStr);
     void updateSpace(const std::string& spaceName, const std::string& jsonStr); // TODO: Generate updateSpace
@@ -27,4 +27,4 @@ public:
 }
 }
 
-#endif
+#endif // __ATINYVECTORS_SPACE_SERVICE_HPP__

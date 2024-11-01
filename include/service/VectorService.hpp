@@ -1,5 +1,5 @@
-#ifndef __ATINYVECTORS_VECTOR_DTO_HPP__
-#define __ATINYVECTORS_VECTOR_DTO_HPP__
+#ifndef __ATINYVECTORS_VECTOR_SERVICE_HPP__
+#define __ATINYVECTORS_VECTOR_SERVICE_HPP__
 
 #include <string>
 #include "nlohmann/json.hpp"
@@ -10,9 +10,9 @@
 using namespace nlohmann;
 
 namespace atinyvectors {
-namespace dto {
+namespace service {
 
-class VectorDTOManager {
+class VectorServiceManager {
 public:
     void upsert(const std::string& spaceName, int versionUniqueId, const std::string& jsonStr); 
     json getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit);
@@ -23,7 +23,7 @@ private:
     void processVectors(const json& parsedJson, int versionId, int defaultIndexId);
 };
 
-} // namespace dto
+} // namespace service
 } // namespace atinyvectors
 
-#endif // __VECTOR_DTO_HPP__
+#endif // __ATINYVECTORS_VECTOR_SERVICE_HPP__

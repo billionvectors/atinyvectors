@@ -1,4 +1,4 @@
-#include "dto/SearchDTO.hpp"
+#include "service/SearchService.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "Space.hpp"
 #include "Version.hpp"
@@ -6,6 +6,7 @@
 #include "DatabaseManager.hpp"
 #include "IdCache.hpp"
 #include "SparseDataPool.hpp"
+#include "VectorMetadata.hpp"
 #include "utils/Utils.hpp"
 
 #include "nlohmann/json.hpp"
@@ -15,10 +16,10 @@ using namespace atinyvectors::algo;
 using namespace atinyvectors::utils;
 
 namespace atinyvectors {
-namespace dto {
+namespace service {
 
 // Function to perform a search using the query JSON string
-std::vector<std::pair<float, hnswlib::labeltype>> SearchDTOManager::search(const std::string& spaceName, int versionUniqueId, const std::string& queryJsonStr, size_t k) {
+std::vector<std::pair<float, hnswlib::labeltype>> SearchServiceManager::search(const std::string& spaceName, int versionUniqueId, const std::string& queryJsonStr, size_t k) {
     // Parse the JSON query string
     nlohmann::json queryJson;
     try {
@@ -55,7 +56,14 @@ std::vector<std::pair<float, hnswlib::labeltype>> SearchDTOManager::search(const
         throw std::runtime_error("HnswIndexManager not found.");
     }
 
+    // Extract filter condition if provided
+    std::string filterCondition;
+    if (queryJson.contains("filter") && queryJson["filter"].is_string()) {
+        filterCondition = queryJson["filter"].get<std::string>();
+    }
+
     // Perform search based on vector type
+    std::vector<std::pair<float, hnswlib::labeltype>> initialResults;
     if (isSparse) {
         // Extract Sparse Vector data
         nlohmann::json sparseData = queryJson["sparse_data"];
@@ -79,7 +87,7 @@ std::vector<std::pair<float, hnswlib::labeltype>> SearchDTOManager::search(const
         }
 
         // Perform the search using the Sparse Vector
-        return hnswIndexManager->search(&sparseVector, k);
+        initialResults = hnswIndexManager->search(&sparseVector, k);
     }
     else {
         // Extract Dense Vector data
@@ -92,12 +100,20 @@ std::vector<std::pair<float, hnswlib::labeltype>> SearchDTOManager::search(const
         }
 
         // Perform the search using the Dense Vector
-        return hnswIndexManager->search(queryVector, k);
+        initialResults = hnswIndexManager->search(queryVector, k);
     }
+
+    // Apply filter if a filter condition is provided
+    if (!filterCondition.empty()) {
+        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
+        initialResults = metadataManager.filterVectors(initialResults, filterCondition);
+    }
+
+    return initialResults;
 }
 
 // Function to find vector index by space name and version unique ID
-int SearchDTOManager::findVectorIndexBySpaceNameAndVersionUniqueId(const std::string& spaceName, int& outVersionUniqueId) {
+int SearchServiceManager::findVectorIndexBySpaceNameAndVersionUniqueId(const std::string& spaceName, int& outVersionUniqueId) {
     IdCache& cache = IdCache::getInstance();
 
     if (outVersionUniqueId == 0) {
@@ -107,7 +123,7 @@ int SearchDTOManager::findVectorIndexBySpaceNameAndVersionUniqueId(const std::st
     return IdCache::getInstance().getVectorIndexId(spaceName, outVersionUniqueId);
 }
 
-nlohmann::json SearchDTOManager::extractSearchResultsToJson(const std::vector<std::pair<float, hnswlib::labeltype>>& searchResults) {
+nlohmann::json SearchServiceManager::extractSearchResultsToJson(const std::vector<std::pair<float, hnswlib::labeltype>>& searchResults) {
     nlohmann::json result = nlohmann::json::array();
     for (const auto& [distance, label] : searchResults) {
         result.push_back({

@@ -12,13 +12,14 @@ expr:
 	| '[' expr (',' expr)* ','? ']'                                              # Array
 	| expr LIKE StringLiteral                                                    # Like
 	| expr POW expr											                     # Power
+	| expr op = (EQ | NE) expr								                     # Equality
 	| op = (ADD | SUB | BNOT | NOT) expr					                     # Unary
 //	| '(' typeName ')' expr									                     # Cast
 	| expr op = (MUL | DIV | MOD) expr						                     # MulDivMod
 	| expr op = (ADD | SUB) expr							                     # AddSub
 	| expr op = (SHL | SHR) expr							                     # Shift
-	| expr op = (IN | NIN) ('[' expr (',' expr)* ','? ']')                       # Term
-	| expr op = (IN | NIN) EmptyTerm                                             # EmptyTerm
+    | expr op = (IN | NIN) '(' expr (',' expr)* ')' # Term
+    | expr op = (IN | NIN) EmptyTerm # EmptyTerm
 	| (JSONContains | ArrayContains)'('expr',' expr')'                           # JSONContains
 	| (JSONContainsAll | ArrayContainsAll)'('expr',' expr')'                     # JSONContainsAll
 	| (JSONContainsAny | ArrayContainsAny)'('expr',' expr')'                     # JSONContainsAny
@@ -26,7 +27,6 @@ expr:
 	| expr op1 = (LT | LE) (Identifier | JSONIdentifier) op2 = (LT | LE) expr	 # Range
 	| expr op1 = (GT | GE) (Identifier | JSONIdentifier) op2 = (GT | GE) expr    # ReverseRange
 	| expr op = (LT | LE | GT | GE) expr					                     # Relational
-	| expr op = (EQ | NE) expr								                     # Equality
 	| expr BAND expr										                     # BitAnd
 	| expr BXOR expr										                     # BitXor
 	| expr BOR expr											                     # BitOr
@@ -66,15 +66,15 @@ BAND: '&';
 BOR: '|';
 BXOR: '^';
 
-AND: '&&' | 'and';
-OR: '||' | 'or';
+AND: '&&' | 'and' | 'AND';
+OR: '||' | 'or' | 'OR';
 
 BNOT: '~';
-NOT: '!' | 'not';
+NOT: '!' | 'not' | 'NOT';
 
-IN: 'in';
-NIN: 'not in';
-EmptyTerm: '[' (Whitespace | Newline)* ']';
+IN: 'in' | 'IN';
+NIN: 'not in' | 'NOT IN';
+EmptyTerm: '(' (Whitespace | Newline)* ')';
 
 JSONContains: 'json_contains' | 'JSON_CONTAINS';
 JSONContainsAll: 'json_contains_all' | 'JSON_CONTAINS_ALL';

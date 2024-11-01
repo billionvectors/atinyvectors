@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "dto/VersionDTO.hpp"
+#include "service/VersionService.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
@@ -14,13 +14,13 @@
 #include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace atinyvectors::algo;
 using namespace atinyvectors::utils;
 using namespace nlohmann;
 
-// Fixture for VersionDTOManager tests
-class VersionDTOManagerTest : public ::testing::Test {
+// Fixture for VersionServiceManager tests
+class VersionServiceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         IdCache::getInstance().clean();
@@ -74,9 +74,9 @@ protected:
 };
 
 // Test for creating a version with a given space name
-TEST_F(VersionDTOManagerTest, CreateVersion) {
+TEST_F(VersionServiceManagerTest, CreateVersion) {
     SpaceManager& spaceManager = SpaceManager::getInstance();
-    VersionDTOManager manager;
+    VersionServiceManager manager;
 
     // Create a space to associate the version with
     Space space(0, "Test Space", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
@@ -106,9 +106,9 @@ TEST_F(VersionDTOManagerTest, CreateVersion) {
 }
 
 // Test for getting a version by its unique_id and space name
-TEST_F(VersionDTOManagerTest, GetByVersionId) {
+TEST_F(VersionServiceManagerTest, GetByVersionId) {
     SpaceManager& spaceManager = SpaceManager::getInstance();
-    VersionDTOManager manager;
+    VersionServiceManager manager;
 
     // Create a space and associate a version with it
     Space space(0, "Test Space", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
@@ -134,9 +134,9 @@ TEST_F(VersionDTOManagerTest, GetByVersionId) {
 }
 
 // Test for getting a version by its name and space name
-TEST_F(VersionDTOManagerTest, GetByVersionName) {
+TEST_F(VersionServiceManagerTest, GetByVersionName) {
     SpaceManager& spaceManager = SpaceManager::getInstance();
-    VersionDTOManager manager;
+    VersionServiceManager manager;
 
     // Create a space and associate a version with it
     Space space(0, "Test Space", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
@@ -162,9 +162,9 @@ TEST_F(VersionDTOManagerTest, GetByVersionName) {
 }
 
 // Test for getting the default version for a space
-TEST_F(VersionDTOManagerTest, GetDefaultVersion) {
+TEST_F(VersionServiceManagerTest, GetDefaultVersion) {
     SpaceManager& spaceManager = SpaceManager::getInstance();
-    VersionDTOManager manager;
+    VersionServiceManager manager;
 
     // Create a space and associate a default version with it
     Space space(0, "Test Space", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
@@ -190,12 +190,12 @@ TEST_F(VersionDTOManagerTest, GetDefaultVersion) {
 }
 
 // Test for getting a list of versions by space name
-TEST_F(VersionDTOManagerTest, GetLists) {
+TEST_F(VersionServiceManagerTest, GetLists) {
     SpaceManager& spaceManager = SpaceManager::getInstance();
-    VersionDTOManager manager;
+    VersionServiceManager manager;
 
     // Create a space and associate multiple versions with it
-    Space space(0, "VersionDTOManagerTest_GetLists", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
+    Space space(0, "VersionServiceManagerTest_GetLists", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
     spaceManager.addSpace(space);
 
     std::string inputJson1 = R"({
@@ -210,11 +210,11 @@ TEST_F(VersionDTOManagerTest, GetLists) {
         "tag": "v2.0"
     })";
 
-    manager.createVersion("VersionDTOManagerTest_GetLists", inputJson1);
-    manager.createVersion("VersionDTOManagerTest_GetLists", inputJson2);
+    manager.createVersion("VersionServiceManagerTest_GetLists", inputJson1);
+    manager.createVersion("VersionServiceManagerTest_GetLists", inputJson2);
 
     // Retrieve the list of versions by space name
-    auto versionListJson = manager.getLists("VersionDTOManagerTest_GetLists");
+    auto versionListJson = manager.getLists("VersionServiceManagerTest_GetLists");
 
     // Validate the JSON output
     ASSERT_TRUE(versionListJson.contains("values"));
@@ -238,28 +238,28 @@ TEST_F(VersionDTOManagerTest, GetLists) {
 }
 
 // Test for handling a non-existent version by unique_id and space name
-TEST_F(VersionDTOManagerTest, GetByVersionId_NonExistent) {
-    VersionDTOManager manager;
+TEST_F(VersionServiceManagerTest, GetByVersionId_NonExistent) {
+    VersionServiceManager manager;
 
     // Attempt to retrieve a non-existent version
     EXPECT_THROW(manager.getByVersionId("Test Space", 999), std::runtime_error);
 }
 
 // Test for handling a non-existent space
-TEST_F(VersionDTOManagerTest, GetByVersionId_NonExistentSpace) {
-    VersionDTOManager manager;
+TEST_F(VersionServiceManagerTest, GetByVersionId_NonExistentSpace) {
+    VersionServiceManager manager;
 
     // Attempt to retrieve a version from a non-existent space
     EXPECT_THROW(manager.getByVersionId("NonExistent Space", 1), std::runtime_error);
 }
 
 // Additional Test: Creating multiple versions and verifying unique_id increment
-TEST_F(VersionDTOManagerTest, UniqueIdIncrement) {
+TEST_F(VersionServiceManagerTest, UniqueIdIncrement) {
     SpaceManager& spaceManager = SpaceManager::getInstance();
-    VersionDTOManager manager;
+    VersionServiceManager manager;
 
     // Create a space
-    Space space(0, "VersionDTOManagerTest_UniqueIdIncrement", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
+    Space space(0, "VersionServiceManagerTest_UniqueIdIncrement", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
     spaceManager.addSpace(space);
 
     // Create multiple versions
@@ -281,9 +281,9 @@ TEST_F(VersionDTOManagerTest, UniqueIdIncrement) {
         "tag": "v3.0"
     })";
 
-    manager.createVersion("VersionDTOManagerTest_UniqueIdIncrement", inputJson1);
-    manager.createVersion("VersionDTOManagerTest_UniqueIdIncrement", inputJson2);
-    manager.createVersion("VersionDTOManagerTest_UniqueIdIncrement", inputJson3);
+    manager.createVersion("VersionServiceManagerTest_UniqueIdIncrement", inputJson1);
+    manager.createVersion("VersionServiceManagerTest_UniqueIdIncrement", inputJson2);
+    manager.createVersion("VersionServiceManagerTest_UniqueIdIncrement", inputJson3);
 
     // Retrieve all versions
     auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);

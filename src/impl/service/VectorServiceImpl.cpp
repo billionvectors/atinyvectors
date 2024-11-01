@@ -1,5 +1,5 @@
-// VectorDTOImpl.cpp
-#include "dto/VectorDTO.hpp"
+// VectorServiceImpl.cpp
+#include "service/VectorService.hpp"
 #include "Space.hpp"
 #include "Version.hpp"
 #include "Vector.hpp"
@@ -15,15 +15,15 @@
 #include "spdlog/spdlog.h"
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace nlohmann;
 
 namespace atinyvectors
 {
-namespace dto
+namespace service
 {
 
-void VectorDTOManager::upsert(const std::string& spaceName, int versionUniqueId, const std::string& jsonStr) {
+void VectorServiceManager::upsert(const std::string& spaceName, int versionUniqueId, const std::string& jsonStr) {
     json parsedJson = json::parse(jsonStr);
 
     spdlog::debug("Parsing JSON input. SpaceName={}, versionUniqueId={}", spaceName, versionUniqueId);
@@ -202,7 +202,7 @@ void VectorDTOManager::upsert(const std::string& spaceName, int versionUniqueId,
     }
 }
 
-void VectorDTOManager::processSimpleVectors(const json& vectorsJson, int versionId, int defaultIndexId) {
+void VectorServiceManager::processSimpleVectors(const json& vectorsJson, int versionId, int defaultIndexId) {
     for (const auto& vectorData : vectorsJson) {
         VectorValueType valueType = VectorValueType::Dense; // Default
         if (vectorData.contains("indices") && vectorData.contains("values")) {
@@ -236,7 +236,7 @@ void VectorDTOManager::processSimpleVectors(const json& vectorsJson, int version
     }
 }
 
-void VectorDTOManager::processVectors(const json& parsedJson, int versionId, int defaultIndexId) {
+void VectorServiceManager::processVectors(const json& parsedJson, int versionId, int defaultIndexId) {
     const auto& vectorsJson = parsedJson["vectors"];
 
     for (const auto& vectorJson : vectorsJson) {
@@ -303,7 +303,7 @@ void VectorDTOManager::processVectors(const json& parsedJson, int versionId, int
     }
 }
 
-json VectorDTOManager::getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit) {
+json VectorServiceManager::getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit) {
     json result;
 
     IdCache& idCache = IdCache::getInstance();

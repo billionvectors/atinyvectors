@@ -97,17 +97,18 @@ add_library(${PROJECT_NAME} SHARED
   src/impl/algo/HnswIndexLRUCacheImpl.cpp
   src/impl/algo/HnswIndexManagerImpl.cpp
   src/impl/algo/SparseSpaceImpl.cpp
+  
+  src/impl/filter/FilterManager.cpp
+  src/impl/filter/SQLBuilderVisitor.cpp
 
-  src/impl/dto/RbacTokenDTOImpl.cpp 
-  src/impl/dto/SearchDTOImpl.cpp 
-  src/impl/dto/SnapshotDTOImpl.cpp 
-  src/impl/dto/SpaceDTOImpl.cpp 
-  src/impl/dto/VectorDTOImpl.cpp 
-  src/impl/dto/VersionDTOImpl.cpp 
+  src/impl/service/RbacTokenServiceImpl.cpp 
+  src/impl/service/SearchServiceImpl.cpp 
+  src/impl/service/SnapshotServiceImpl.cpp 
+  src/impl/service/SpaceServiceImpl.cpp 
+  src/impl/service/VectorServiceImpl.cpp 
+  src/impl/service/VersionServiceImpl.cpp 
 
   src/impl/utils/UtilsImpl.cpp
-  
-  src/impl/filter/SQLBuilderVisitor.cpp
 
   src/impl/ConfigImpl.cpp 
   src/impl/DatabaseManagerImpl.cpp 
@@ -152,15 +153,16 @@ add_executable(test_${PROJECT_NAME}
   tests/algo/HnswLibTest.cpp
   tests/algo/SparseIpSpaceTest.cpp
   tests/algo/SparseL2SpaceTest.cpp
-
-  tests/dto/RbacTokenDTOTest.cpp
-  tests/dto/SearchDTOTest.cpp
-  tests/dto/SnapshotDTOTest.cpp
-  tests/dto/SpaceDTOTest.cpp
-  tests/dto/VectorDTOTest.cpp
-  tests/dto/VersionDTOTest.cpp
   
-  # tests/filter/SQLBuilderVisitorTest.cpp
+  tests/filter/FilterManagerTest.cpp
+  tests/filter/SQLBuilderVisitorTest.cpp
+
+  tests/service/RbacTokenServiceTest.cpp
+  tests/service/SearchServiceTest.cpp
+  tests/service/SnapshotServiceTest.cpp
+  tests/service/SpaceServiceTest.cpp
+  tests/service/VectorServiceTest.cpp
+  tests/service/VersionServiceTest.cpp
 
   tests/ConfigTest.cpp 
   tests/IdCacheTest.cpp 
@@ -186,15 +188,16 @@ add_executable(test_${PROJECT_NAME}
   src/impl/algo/HnswIndexManagerImpl.cpp
   src/impl/algo/SparseSpaceImpl.cpp
 
-  src/impl/dto/RbacTokenDTOImpl.cpp 
-  src/impl/dto/SearchDTOImpl.cpp 
-  src/impl/dto/SnapshotDTOImpl.cpp 
-  src/impl/dto/SpaceDTOImpl.cpp 
-  src/impl/dto/VectorDTOImpl.cpp 
-  src/impl/dto/VersionDTOImpl.cpp 
+  src/impl/service/RbacTokenServiceImpl.cpp 
+  src/impl/service/SearchServiceImpl.cpp 
+  src/impl/service/SnapshotServiceImpl.cpp 
+  src/impl/service/SpaceServiceImpl.cpp 
+  src/impl/service/VectorServiceImpl.cpp 
+  src/impl/service/VersionServiceImpl.cpp 
 
   src/impl/utils/UtilsImpl.cpp
   
+  src/impl/filter/FilterManager.cpp
   src/impl/filter/SQLBuilderVisitor.cpp
 
   src/impl/ConfigImpl.cpp 

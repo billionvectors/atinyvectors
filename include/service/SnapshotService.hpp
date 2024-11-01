@@ -1,5 +1,5 @@
-#ifndef __ATINYVECTORS_SNAPSHOT_DTO_HPP__
-#define __ATINYVECTORS_SNAPSHOT_DTO_HPP__
+#ifndef __ATINYVECTORS_SNAPSHOT_SERVICE_HPP__
+#define __ATINYVECTORS_SNAPSHOT_SERVICE_HPP__
 
 #include <iostream>
 #include <string>
@@ -9,13 +9,14 @@ using namespace std;
 
 namespace atinyvectors
 {
-namespace dto
+namespace service
 {
 
-class SnapshotDTOManager {
+class SnapshotServiceManager {
 public:
     void createSnapshot(const std::string& jsonStr);
     void restoreSnapshot(const std::string& fileName);
+    void deleteSnapshot(const std::string& filename);
     nlohmann::json listSnapshots();
     void deleteSnapshots();
 };
@@ -23,4 +24,4 @@ public:
 }
 }
 
-#endif
+#endif // __ATINYVECTORS_SNAPSHOT_SERVICE_HPP__

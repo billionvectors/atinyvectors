@@ -1,21 +1,21 @@
 #include "atinyvectors_c_api.h"
-#include "dto/VectorDTO.hpp"
+#include "service/VectorService.hpp"
 #include <cstring>
 #include <iostream>
 #include "nlohmann/json.hpp"
 
-// C API for VectorDTOManager
-VectorDTOManager* atv_vector_dto_manager_new() {
-    return reinterpret_cast<VectorDTOManager*>(new atinyvectors::dto::VectorDTOManager());
+// C API for VectorServiceManager
+VectorServiceManager* atv_vector_service_manager_new() {
+    return reinterpret_cast<VectorServiceManager*>(new atinyvectors::service::VectorServiceManager());
 }
 
-void atv_vector_dto_manager_free(VectorDTOManager* manager) {
-    delete reinterpret_cast<atinyvectors::dto::VectorDTOManager*>(manager);
+void atv_vector_service_manager_free(VectorServiceManager* manager) {
+    delete reinterpret_cast<atinyvectors::service::VectorServiceManager*>(manager);
 }
 
-void atv_vector_dto_upsert(VectorDTOManager* manager, const char* spaceName, int versionId, const char* jsonStr) {
+void atv_vector_service_upsert(VectorServiceManager* manager, const char* spaceName, int versionId, const char* jsonStr) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::VectorDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::VectorServiceManager*>(manager);
         cppManager->upsert(spaceName, versionId, jsonStr);
     } catch (const nlohmann::json::exception& e) {
         atv_create_error_json(ATVErrorCode::JSON_PARSE_ERROR, e.what());
@@ -24,9 +24,9 @@ void atv_vector_dto_upsert(VectorDTOManager* manager, const char* spaceName, int
     }
 }
 
-char* atv_vector_dto_get_vectors_by_version_id(VectorDTOManager* manager, const char* spaceName, int versionId, int start, int limit) {
+char* atv_vector_service_get_vectors_by_version_id(VectorServiceManager* manager, const char* spaceName, int versionId, int start, int limit) {
     try {
-        auto* cppManager = reinterpret_cast<atinyvectors::dto::VectorDTOManager*>(manager);
+        auto* cppManager = reinterpret_cast<atinyvectors::service::VectorServiceManager*>(manager);
         nlohmann::json result = cppManager->getVectorsByVersionId(spaceName, versionId, start, limit);
         
         // Allocate memory and return JSON string

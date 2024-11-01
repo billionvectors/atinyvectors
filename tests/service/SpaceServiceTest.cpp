@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "dto/SpaceDTO.hpp"
-#include "dto/VectorDTO.hpp"
+#include "service/SpaceService.hpp"
+#include "service/VectorService.hpp"
 #include "algo/HnswIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
@@ -15,13 +15,13 @@
 #include "nlohmann/json.hpp"
 
 using namespace atinyvectors;
-using namespace atinyvectors::dto;
+using namespace atinyvectors::service;
 using namespace atinyvectors::algo;
 using namespace atinyvectors::utils;
 using namespace nlohmann;
 
 // Test Fixture class
-class SpaceDTOManagerTest : public ::testing::Test {
+class SpaceServiceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         IdCache::getInstance().clean();
@@ -73,7 +73,7 @@ protected:
     }
 };
 
-TEST_F(SpaceDTOManagerTest, CreateSpaceWithNormalizedJson) {
+TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
     std::string inputJson = R"({
         "name": "spacename",
         "dimension": 128,
@@ -135,7 +135,7 @@ TEST_F(SpaceDTOManagerTest, CreateSpaceWithNormalizedJson) {
         }
     })";
 
-    SpaceDTOManager manager;
+    SpaceServiceManager manager;
     manager.createSpace(inputJson);
 
     // Space 확인
@@ -181,7 +181,7 @@ TEST_F(SpaceDTOManagerTest, CreateSpaceWithNormalizedJson) {
     }
 }
 
-TEST_F(SpaceDTOManagerTest, GetBySpaceIdTest) {
+TEST_F(SpaceServiceManagerTest, GetBySpaceIdTest) {
     std::string inputJson = R"({
         "name": "GetBySpaceIdTest",
         "dimension": 128,
@@ -205,7 +205,7 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceIdTest) {
         }
     })";
 
-    SpaceDTOManager manager;
+    SpaceServiceManager manager;
     manager.createSpace(inputJson);
 
     // Get all spaces and search for the one with the name "GetBySpaceIdTest"
@@ -258,7 +258,7 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceIdTest) {
     }
 }
 
-TEST_F(SpaceDTOManagerTest, GetListsTest) {
+TEST_F(SpaceServiceManagerTest, GetListsTest) {
     // Create multiple spaces
     std::string inputJson1 = R"({
         "name": "space1",
@@ -272,7 +272,7 @@ TEST_F(SpaceDTOManagerTest, GetListsTest) {
         "metric": "cosine"
     })";
 
-    SpaceDTOManager manager;
+    SpaceServiceManager manager;
     manager.createSpace(inputJson1);
     manager.createSpace(inputJson2);
 
@@ -303,7 +303,7 @@ TEST_F(SpaceDTOManagerTest, GetListsTest) {
     EXPECT_TRUE(space2Found);
 }
 
-TEST_F(SpaceDTOManagerTest, GetBySpaceNameTest) {
+TEST_F(SpaceServiceManagerTest, GetBySpaceNameTest) {
     // Create a space
     std::string inputJson = R"({
         "name": "GetBySpaceNameTest",
@@ -311,7 +311,7 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceNameTest) {
         "metric": "cosine"
     })";
 
-    SpaceDTOManager manager;
+    SpaceServiceManager manager;
     manager.createSpace(inputJson);
 
     // Retrieve the space by name
@@ -324,7 +324,7 @@ TEST_F(SpaceDTOManagerTest, GetBySpaceNameTest) {
     ASSERT_TRUE(spaceJson.contains("updated_time_utc"));
 }
 
-TEST_F(SpaceDTOManagerTest, DeleteTest) {
+TEST_F(SpaceServiceManagerTest, DeleteTest) {
     // Set up Space, Version, and VectorIndex for search
     Space defaultSpace(0, "DeleteTest", "Default Space Description", 0, 0);
     int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
@@ -361,17 +361,17 @@ TEST_F(SpaceDTOManagerTest, DeleteTest) {
         ]
     })";
 
-    VectorDTOManager vectorDTOManager;
-    vectorDTOManager.upsert("DeleteTest", 1, vectorDataJson);
+    VectorServiceManager VectorServiceManager;
+    VectorServiceManager.upsert("DeleteTest", 1, vectorDataJson);
 
-    SpaceDTOManager spaceDTOManager;
-    spaceDTOManager.deleteSpace("DeleteTest", "{}");
+    SpaceServiceManager SpaceServiceManager;
+    SpaceServiceManager.deleteSpace("DeleteTest", "{}");
     
     EXPECT_THROW(SpaceManager::getInstance().getSpaceById(spaceId), std::runtime_error);
     EXPECT_THROW(VersionManager::getInstance().getVersionById(versionId), std::runtime_error);
 }
 
-TEST_F(SpaceDTOManagerTest, UpdateSpaceTest) {
+TEST_F(SpaceServiceManagerTest, UpdateSpaceTest) {
     std::string initialJson = R"({
         "name": "UpdateSpaceTest",
         "dimension": 128,
@@ -395,7 +395,7 @@ TEST_F(SpaceDTOManagerTest, UpdateSpaceTest) {
         }
     })";
 
-    SpaceDTOManager manager;
+    SpaceServiceManager manager;
     manager.createSpace(initialJson);
     int spaceId = IdCache::getInstance().getSpaceId("UpdateSpaceTest");
 
@@ -440,19 +440,19 @@ TEST_F(SpaceDTOManagerTest, UpdateSpaceTest) {
     }
 }
 
-TEST_F(SpaceDTOManagerTest, UpdateSpaceWithAssignedVectorsShouldThrow) {
+TEST_F(SpaceServiceManagerTest, UpdateSpaceWithAssignedVectorsShouldThrow) {
     std::string initialJson = R"({
         "name": "UpdateSpaceTest",
         "dimension": 4,
         "metric": "cosine"
     })";
 
-    SpaceDTOManager manager;
+    SpaceServiceManager manager;
     manager.createSpace(initialJson);
     int spaceId = IdCache::getInstance().getSpaceId("UpdateSpaceTest");
     ASSERT_GT(spaceId, 0) << "Failed to create space.";
 
-    VectorDTOManager vectorDTOManager;
+    VectorServiceManager VectorServiceManager;
     std::string vectorDataJson = R"({
         "vectors": [
             {
@@ -468,7 +468,7 @@ TEST_F(SpaceDTOManagerTest, UpdateSpaceWithAssignedVectorsShouldThrow) {
         ]
     })";
 
-    vectorDTOManager.upsert("UpdateSpaceTest", 1, vectorDataJson);
+    VectorServiceManager.upsert("UpdateSpaceTest", 1, vectorDataJson);
 
     std::string updateJsonStr = R"({
         "dense": {
