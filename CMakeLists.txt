@@ -10,6 +10,29 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(FetchContent)
 
+# Fetch FAISS library
+FetchContent_Declare(
+  faiss
+  GIT_REPOSITORY https://github.com/billionvectors/faiss_atinyvectors.git
+  GIT_TAG v1.9.0-atv
+)
+set(FAISS_OPT_LEVEL "generic" CACHE STRING "Optimization level for Faiss")
+set(FAISS_ENABLE_GPU OFF CACHE BOOL "Enable support for GPU indexes")
+set(FAISS_ENABLE_RAFT OFF CACHE BOOL "Enable RAFT for GPU indexes")
+set(FAISS_ENABLE_ROCM OFF CACHE BOOL "Enable ROCm for GPU indexes")
+set(FAISS_ENABLE_PYTHON OFF CACHE BOOL "Build Python extension")
+set(FAISS_ENABLE_C_API ON CACHE BOOL "Build C API")
+set(FAISS_USE_LTO OFF CACHE BOOL "Enable Link-Time Optimization")
+FetchContent_MakeAvailable(faiss)
+
+# Fetch googletest library (googletest in faiss)
+#FetchContent_Declare(
+#  googletest
+#  GIT_REPOSITORY https://github.com/google/googletest.git
+#  GIT_TAG v1.15.2
+#)
+#FetchContent_MakeAvailable(googletest)
+
 # Fetch SQLiteCpp library
 FetchContent_Declare(
   SQLiteCpp
@@ -18,14 +41,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SQLiteCpp)
 
-# Fetch GoogleTest library
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG release-1.12.1
-)
-FetchContent_MakeAvailable(googletest)
-
 # Fetch spdlog library
 FetchContent_Declare(
   spdlog
@@ -33,14 +48,6 @@ FetchContent_Declare(
   GIT_TAG v1.11.0
 )
 FetchContent_MakeAvailable(spdlog)
-
-# Fetch hnswlib library
-FetchContent_Declare(
-  hnswlib
-  GIT_REPOSITORY https://github.com/nmslib/hnswlib.git
-  GIT_TAG v0.8.0
-)
-FetchContent_MakeAvailable(hnswlib)
 
 # Fetch libzip library for ZIP functionality
 FetchContent_Declare(
@@ -94,9 +101,8 @@ add_library(${PROJECT_NAME} SHARED
   capi/atinyvectors_vector_c_api.cpp
   capi/atinyvectors_version_c_api.cpp
 
-  src/impl/algo/HnswIndexLRUCacheImpl.cpp
-  src/impl/algo/HnswIndexManagerImpl.cpp
-  src/impl/algo/SparseSpaceImpl.cpp
+  src/impl/algo/FaissIndexManagerImpl.cpp
+  src/impl/algo/FaissIndexLRUCacheImpl.cpp
   
   src/impl/filter/FilterManager.cpp
   src/impl/filter/SQLBuilderVisitor.cpp
@@ -136,23 +142,20 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SQLiteCpp
     nlohmann_json::nlohmann_json
     spdlog::spdlog
-    hnswlib
     zip
     jwt-cpp
     OpenSSL::SSL
     OpenSSL::Crypto
     antlr4_static
+    faiss
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE ${disabled_compile_warnings})
 
 # Add executable for the test program
-add_executable(test_${PROJECT_NAME} 
-  tests/algo/HnswIndexLRUCacheTest.cpp
-  tests/algo/HnswIndexManagerTest.cpp
-  tests/algo/HnswLibTest.cpp
-  tests/algo/SparseIpSpaceTest.cpp
-  tests/algo/SparseL2SpaceTest.cpp
+add_executable(test_${PROJECT_NAME}
+  tests/algo/FaissIndexManagerTest.cpp
+  tests/algo/FaissIndexLRUCacheTest.cpp
   
   tests/filter/FilterManagerTest.cpp
   tests/filter/SQLBuilderVisitorTest.cpp
@@ -184,9 +187,8 @@ add_executable(test_${PROJECT_NAME}
   capi/atinyvectors_vector_c_api.cpp
   capi/atinyvectors_version_c_api.cpp
 
-  src/impl/algo/HnswIndexLRUCacheImpl.cpp
-  src/impl/algo/HnswIndexManagerImpl.cpp
-  src/impl/algo/SparseSpaceImpl.cpp
+  src/impl/algo/FaissIndexManagerImpl.cpp
+  src/impl/algo/FaissIndexLRUCacheImpl.cpp
 
   src/impl/service/RbacTokenServiceImpl.cpp 
   src/impl/service/SearchServiceImpl.cpp 
@@ -227,10 +229,10 @@ target_link_libraries(test_${PROJECT_NAME} PRIVATE
     SQLiteCpp
     nlohmann_json::nlohmann_json
     spdlog::spdlog
-    hnswlib
     zip
     jwt-cpp
     antlr4_static
+    faiss
 )
 
 # Include GoogleTest

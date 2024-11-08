@@ -20,6 +20,12 @@ enum class MetricType {
     InnerProduct
 };
 
+enum class QuantizationType {
+    NoQuantization,
+    Scalar,
+    Product
+};
+
 class HnswConfig {
 public:
     int M;
@@ -42,36 +48,33 @@ public:
 
 class ScalarConfig {
 public:
-    std::string Type;
-    float Quantile;
-    bool AlwaysRam;
+    std::string Type; // int8, uint8, fp16, int4
 
-    ScalarConfig(const std::string& type = "", float quantile = 0.0f, bool alwaysRam = false)
-        : Type(type), Quantile(quantile), AlwaysRam(alwaysRam) {}
+    ScalarConfig(const std::string& type = "")
+        : Type(type) {}
 
     nlohmann::json toJson() const {
-        return nlohmann::json{{"Type", Type}, {"Quantile", Quantile}, {"AlwaysRam", AlwaysRam}};
+        return nlohmann::json{{"type", Type}};
     }
 
     static ScalarConfig fromJson(const nlohmann::json& j) {
-        return ScalarConfig(j.at("Type").get<std::string>(), j.at("Quantile").get<float>(), j.at("AlwaysRam").get<bool>());
+        return ScalarConfig(j.at("type").get<std::string>());
     }
 };
 
 class ProductConfig {
 public:
     std::string Compression;
-    bool AlwaysRam;
 
-    ProductConfig(const std::string& compression = "", bool alwaysRam = false)
-        : Compression(compression), AlwaysRam(alwaysRam) {}
+    ProductConfig(const std::string& compression = "")
+        : Compression(compression) {}
 
     nlohmann::json toJson() const {
-        return nlohmann::json{{"Compression", Compression}, {"AlwaysRam", AlwaysRam}};
+        return nlohmann::json{{"compression", Compression}};
     }
 
     static ProductConfig fromJson(const nlohmann::json& j) {
-        return ProductConfig(j.at("Compression").get<std::string>(), j.at("AlwaysRam").get<bool>());
+        return ProductConfig(j.at("compression").get<std::string>());
     }
 };
 
@@ -79,19 +82,49 @@ class QuantizationConfig {
 public:
     ScalarConfig Scalar;
     ProductConfig Product;
+    QuantizationType QuantizationType;
 
     QuantizationConfig(const ScalarConfig& scalar = ScalarConfig(), const ProductConfig& product = ProductConfig())
-        : Scalar(scalar), Product(product) {}
+        : Scalar(scalar), Product(product), QuantizationType(QuantizationType::NoQuantization) {}
 
     nlohmann::json toJson() const {
-        return nlohmann::json{{"Scalar", Scalar.toJson()}, {"Product", Product.toJson()}};
+        nlohmann::json j;
+
+        switch (QuantizationType) {
+            case QuantizationType::NoQuantization:
+                return j;
+
+            case QuantizationType::Scalar:
+                j["scalar"] = Scalar.toJson();
+                break;
+
+            case QuantizationType::Product:
+                j["product"] = Product.toJson();
+                break;
+        }
+
+        return j;
     }
 
     static QuantizationConfig fromJson(const nlohmann::json& j) {
-        return QuantizationConfig(
-            ScalarConfig::fromJson(j.at("Scalar")),
-            ProductConfig::fromJson(j.at("Product"))
-        );
+        QuantizationConfig config;
+
+        if (j.empty()) {
+            config.QuantizationType = QuantizationType::NoQuantization;
+            return config;
+        }
+
+        if (j.contains("scalar")) {
+            config.Scalar = ScalarConfig::fromJson(j.at("scalar"));
+            config.QuantizationType = QuantizationType::Scalar;
+        } else if (j.contains("product")) {
+            config.Product = ProductConfig::fromJson(j.at("product"));
+            config.QuantizationType = QuantizationType::Product;
+        } else {
+            config.QuantizationType = QuantizationType::NoQuantization;
+        }
+
+        return config;
     }
 };
 

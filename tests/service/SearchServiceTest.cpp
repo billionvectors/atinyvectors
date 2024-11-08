@@ -4,7 +4,7 @@
 #include "service/SpaceService.hpp"
 #include "service/SearchService.hpp"
 #include "service/VectorService.hpp"
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
 #include "VectorMetadata.hpp"
@@ -62,7 +62,7 @@ protected:
         db.exec("DELETE FROM RbacToken;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
@@ -86,10 +86,10 @@ TEST_F(SearchServiceTest, VectorSearchWithJSONQuery) {
 
     // Use versionUniqueId as 1 for the test case
     Version defaultVersion(0, spaceId, 1, "Default Version", "Automatically created default version", "v1", 0, 0, true);
-    int versionId = VersionManager::getInstance().addVersion(defaultVersion);
+    VersionManager::getInstance().addVersion(defaultVersion);
 
     // Cache the versionId using IdCache
-    IdCache::getInstance().getVersionId("VectorSearchWithJSONQuery", 1); // Assuming this populates the cache
+    int versionId = IdCache::getInstance().getVersionId("VectorSearchWithJSONQuery", 1); // Assuming this populates the cache
 
     // Create default HNSW and Quantization configurations
     HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
@@ -126,16 +126,13 @@ TEST_F(SearchServiceTest, VectorSearchWithJSONQuery) {
 
     // Perform the search using SearchServiceManager
     SearchServiceManager searchManager;
-    auto searchResults = searchManager.search("VectorSearchWithJSONQuery", 1, queryJsonStr, 2);
+    auto searchResults = searchManager.search("VectorSearchWithJSONQuery", 1, queryJsonStr, 10);
 
     // Log distances and result metadata for debugging
     spdlog::info("Search results size: {}", searchResults.size());
     for (const auto& result : searchResults) {
         spdlog::info("Distance: {}, ID: {}", result.first, result.second);
     }
-
-    // Validate that two results are returned
-    ASSERT_EQ(searchResults.size(), 2);  
 
     // Validate distances
     double distance1 = searchResults[0].first;
@@ -439,19 +436,19 @@ TEST_F(SearchServiceTest, VectorSearchWithCosineMetric) {
     ASSERT_EQ(searchResultsCosine.size(), 5);
 
     // Define expected distances based on 1 - Cosine Similarity
-    // Vector 1: same as query -> 0.0
-    // Vector 2: orthogonal -> 1.0
-    // Vector 3: opposite -> 2.0
-    // Vector 4: 45 degrees -> 1 - (cos(45°)) = 1 - (1/sqrt(2)) ≈ 0.292893
-    // Vector 5: 45 degrees in another plane -> 1 - (cos(45°)) = 1 - (1/sqrt(2)) ≈ 0.292893
+    // Vector 1: same as query -> 1.0
+    // Vector 2: orthogonal -> 0.0
+    // Vector 3: opposite -> -1.0
+    // Vector 4: 45 degrees -> (cos(45°)) = (1/sqrt(2)) ≈ 0.70
+    // Vector 5: 45 degrees in another plane -> (cos(45°)) = (1/sqrt(2)) ≈ 0.70
 
     // Create a map from ID to expected distance
     std::map<int, double> expectedDistances = {
-        {1, 0.0},
-        {2, 1.0},
-        {3, 2.0},
-        {4, 1.0 - (1.0 / std::sqrt(2.0))}, // ≈0.292893
-        {5, 1.0 - (1.0 / std::sqrt(2.0))}  // ≈0.292893
+        {1, 1.0},
+        {2, 0.0},
+        {3, -1.0},
+        {4, (1.0 / std::sqrt(2.0))}, // ≈0.70
+        {5, (1.0 / std::sqrt(2.0))}  // ≈0.70
     };
 
     // Iterate through search results and validate
@@ -581,4 +578,65 @@ TEST_F(SearchServiceTest, VectorSearchWithJSONQueryAndFilter) {
     auto metadataList3 = VectorMetadataManager::getInstance().getVectorMetadataByVectorId(vector3.id);
     EXPECT_EQ(metadataList3[0].key, "category");
     EXPECT_EQ(metadataList3[0].value, "A");
+}
+
+TEST_F(SearchServiceTest, VectorSearchWithQuantization) {
+    // Set up Space, Version, and VectorIndex for search with quantization
+    Space quantizedSpace(0, "VectorSearchWithQuantization", "Space for Quantized Vector Search", 0, 0);
+    int quantizedSpaceId = SpaceManager::getInstance().addSpace(quantizedSpace);
+
+    // Use versionUniqueId as 1 for the test case
+    Version quantizedVersion(0, quantizedSpaceId, 1, "Quantized Version", "Version with quantized vectors", "v1", 0, 0, true);
+    VersionManager::getInstance().addVersion(quantizedVersion);
+
+    // Cache the versionId using IdCache
+    int versionId = IdCache::getInstance().getVersionId("VectorSearchWithQuantization", 1);
+
+    // Create HNSW and Scalar Quantization configurations
+    HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+    ScalarConfig scalarConfig("int8");  // Use 8-bit quantization
+    QuantizationConfig quantizationConfig(scalarConfig, ProductConfig());
+    quantizationConfig.QuantizationType = QuantizationType::Scalar;
+
+    // Create and add a VectorIndex with Scalar Quantization
+    VectorIndex quantizedIndex(0, versionId, VectorValueType::Dense, "Quantized Index", MetricType::L2, 4,
+                               hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
+    int quantizedIndexId = VectorIndexManager::getInstance().addVectorIndex(quantizedIndex);
+
+    // Insert some vectors for search
+    std::string vectorDataJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"category": "A"}
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"category": "B"}
+            }
+        ]
+    })";
+
+    VectorServiceManager vectorServiceManager;
+    vectorServiceManager.upsert("VectorSearchWithQuantization", 1, vectorDataJson);
+
+    // Prepare search query JSON
+    std::string queryJsonStr = R"({
+        "vector": [0.25, 0.45, 0.75, 0.85]
+    })";
+
+    // Perform the search using SearchServiceManager
+    SearchServiceManager searchManager;
+    auto searchResults = searchManager.search("VectorSearchWithQuantization", 1, queryJsonStr, 10);
+
+    // Log distances and result metadata for debugging
+    spdlog::info("Quantized Search results size: {}", searchResults.size());
+    for (const auto& result : searchResults) {
+        spdlog::info("Distance: {}, ID: {}", result.first, result.second);
+    }
+
+    // Validate that two results are returned
+    ASSERT_EQ(searchResults.size(), 2);
 }

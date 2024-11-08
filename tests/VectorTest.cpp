@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
 #include "VectorMetadata.hpp"
@@ -48,7 +48,7 @@ protected:
         db.exec("DELETE FROM VectorValue;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
 
         createTestIndex();
     }

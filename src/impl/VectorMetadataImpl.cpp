@@ -1,9 +1,10 @@
+#include <unordered_set>
+#include <sstream>
+
 #include "VectorMetadata.hpp"
 #include "DatabaseManager.hpp"
 #include "filter/FilterManager.hpp"
 #include "spdlog/spdlog.h"
-
-#include <sstream>
 
 using namespace atinyvectors::filter;
 
@@ -138,11 +139,11 @@ void VectorMetadataManager::deleteVectorMetadataByVectorId(long vectorId) {
     transaction.commit();
 }
 
-std::vector<std::pair<float, hnswlib::labeltype>> VectorMetadataManager::filterVectors(
-    const std::vector<std::pair<float, hnswlib::labeltype>>& inputVectors,
+std::vector<std::pair<float, int>> VectorMetadataManager::filterVectors(
+    const std::vector<std::pair<float, int>>& inputVectors,
     const std::string& filter) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    std::vector<std::pair<float, hnswlib::labeltype>> filteredVectors;
+    std::vector<std::pair<float, int>> filteredVectors;
     std::string sqlFilter = FilterManager::getInstance().toSQL(filter);
 
     std::stringstream uniqueIdListStream;

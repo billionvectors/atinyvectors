@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
 #include "VectorMetadata.hpp"
@@ -48,7 +48,7 @@ protected:
         db.exec("DELETE FROM VectorValue;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
 
         createTestIndex();
     }
@@ -220,7 +220,7 @@ TEST_F(VectorMetadataManagerTest, FilterVectors) {
     metadataManager.addVectorMetadata(metadata3);
 
     // Prepare input vectors with unique_id values
-    std::vector<std::pair<float, hnswlib::labeltype>> inputVectors = {
+    std::vector<std::pair<float, int>> inputVectors = {
         {0.1f, 1001},  // unique_id
         {0.2f, 1002},  // unique_id
         {0.3f, 1003}   // unique_id

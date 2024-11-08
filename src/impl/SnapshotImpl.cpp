@@ -1,4 +1,4 @@
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Snapshot.hpp"
 #include "DatabaseManager.hpp"
 #include "IdCache.hpp"
@@ -236,6 +236,12 @@ int SnapshotManager::createSnapshot(const std::vector<std::pair<std::string, int
 
     auto& cache = IdCache::getInstance();
 
+    // Ensure that the metaDirectory exists and normalize the path
+    fs::path metaDirPath(metaDirectory);
+    if (!fs::exists(metaDirPath)) {
+        fs::create_directories(metaDirPath);
+    }
+
     std::string dbBackupFileName = "backup_" + std::to_string(generateRandomNumber()) + ".db";
     backupDatabase(dbBackupFileName);
 
@@ -245,7 +251,7 @@ int SnapshotManager::createSnapshot(const std::vector<std::pair<std::string, int
         spdlog::info("Creating snapshot for spaceName: {}, versionId: {}", spaceName, versionId);
 
         int vectorIndexId = cache.getVectorIndexId(spaceName, versionId);
-        auto index = HnswIndexLRUCache::getInstance().get(vectorIndexId);
+        auto index = FaissIndexLRUCache::getInstance().get(vectorIndexId);
         index->saveIndex();
 
         spdlog::debug("Index saved for spaceName: {}, versionId: {}", spaceName, versionId);
@@ -282,7 +288,7 @@ int SnapshotManager::createSnapshot(const std::vector<std::pair<std::string, int
 void SnapshotManager::restoreSnapshot(const std::string& zipFileName, const std::string& targetDirectory) {
     // clean memory caches
     IdCache::getInstance().clean();
-    HnswIndexLRUCache::getInstance().clean();
+    FaissIndexLRUCache::getInstance().clean();
 
     // Create the target directory if it does not exist
     if (!fs::exists(targetDirectory)) {

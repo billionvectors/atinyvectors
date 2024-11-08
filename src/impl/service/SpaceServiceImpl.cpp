@@ -75,12 +75,7 @@ void processDenseConfiguration(const json& parsedJson, int versionId) {
     QuantizationConfig defaultQuantizationConfig;
     if (parsedJson.contains("quantization_config")) {
         json quantizationJson = parsedJson["quantization_config"];
-        if (quantizationJson.contains("scalar")) {
-            json scalarJson = quantizationJson["scalar"];
-            defaultQuantizationConfig.Scalar.Type = scalarJson.value("type", "int8");
-            defaultQuantizationConfig.Scalar.Quantile = scalarJson.value("quantile", 0.99f);
-            defaultQuantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", true);
-        }
+        defaultQuantizationConfig = QuantizationConfig::fromJson(quantizationJson);
     }
 
     const std::string& defaultDenseIndexName = Config::getInstance().getDefaultDenseIndexName();
@@ -110,12 +105,7 @@ void processDenseConfiguration(const json& parsedJson, int versionId) {
         QuantizationConfig quantizationConfig = defaultQuantizationConfig;
         if (denseJson.contains("quantization_config")) {
             const json& quantizationJson = denseJson["quantization_config"];
-            if (quantizationJson.contains("scalar")) {
-                const json& scalarJson = quantizationJson["scalar"];
-                quantizationConfig.Scalar.Type = scalarJson.value("type", quantizationConfig.Scalar.Type);
-                quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", quantizationConfig.Scalar.Quantile);
-                quantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", quantizationConfig.Scalar.AlwaysRam);
-            }
+            quantizationConfig = QuantizationConfig::fromJson(quantizationJson);
         }
         
         createDenseVectorIndex(versionId, defaultDenseIndexName, denseDimension, denseMetric, hnswConfig, quantizationConfig, true);
@@ -170,12 +160,7 @@ void processIndexesConfiguration(const json& parsedJson, int versionId) {
         QuantizationConfig quantizationConfig;
         if (indexJson.contains("quantization_config")) {
             const json& quantizationJson = indexJson["quantization_config"];
-            if (quantizationJson.contains("scalar")) {
-                const json& scalarJson = quantizationJson["scalar"];
-                quantizationConfig.Scalar.Type = scalarJson.value("type", "int8");
-                quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", 0.99f);
-                quantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", true);
-            }
+            quantizationConfig = QuantizationConfig::fromJson(quantizationJson);
         }
 
         createDenseVectorIndex(versionId, indexName, dimension, metric, hnswConfig, quantizationConfig, is_default);
@@ -351,12 +336,7 @@ void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId)
             QuantizationConfig quantizationConfig;
             if (indexJson.contains("quantization_config")) {
                 json quantizationJson = indexJson["quantization_config"];
-                if (quantizationJson.contains("scalar")) {
-                    json scalarJson = quantizationJson["scalar"];
-                    quantizationConfig.Scalar.Type = scalarJson.value("type", "int8");
-                    quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", 0.99f);
-                    quantizationConfig.Scalar.AlwaysRam = scalarJson.value("always_ram", true);
-                }
+                quantizationConfig = QuantizationConfig::fromJson(quantizationJson);
             }
 
             createDenseVectorIndex(versionId, indexName, dimension, metric, hnswConfig, quantizationConfig, false);
@@ -381,12 +361,7 @@ void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId)
             if (indexJson.contains("quantization_config")) {
                 json quantizationJson = indexJson["quantization_config"];
                 QuantizationConfig quantizationConfig = targetIndex->getQuantizationConfig();
-                if (quantizationJson.contains("scalar")) {
-                    json scalarJson = quantizationJson["scalar"];
-                    quantizationConfig.Scalar.Type = scalarJson.value("type", quantizationConfig.Scalar.Type);
-                    quantizationConfig.Scalar.Quantile = scalarJson.value("quantile", quantizationConfig.Scalar.Quantile);
-                    quantizationConfig.Scalar.AlwaysRam = quantizationJson.value("always_ram", quantizationConfig.Scalar.AlwaysRam);
-                }
+                quantizationConfig = QuantizationConfig::fromJson(quantizationJson);
                 targetIndex->setQuantizationConfig(quantizationConfig);
             }
 

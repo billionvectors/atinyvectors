@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <zip.h>
 
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
 #include "Space.hpp"
@@ -57,7 +57,7 @@ protected:
         db.exec("DELETE FROM RbacToken;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
 
         // Create a temporary metaDirectory for testing
         metaDirectory = "test_meta_directory";

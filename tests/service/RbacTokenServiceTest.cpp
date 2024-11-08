@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "service/RbacTokenService.hpp"
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
 #include "VectorMetadata.hpp"
@@ -59,7 +59,7 @@ protected:
         db.exec("DELETE FROM RbacToken;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {

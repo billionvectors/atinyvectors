@@ -3,7 +3,7 @@
 #include "service/SearchService.hpp"
 #include "service/SpaceService.hpp"
 #include "service/VectorService.hpp"
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
 #include "Space.hpp"
@@ -60,7 +60,7 @@ protected:
         db.exec("DELETE FROM RbacToken;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
 
         // Clear snapshot directory
         std::string snapshotDirectory = Config::getInstance().getDataPath() + "/snapshot/";

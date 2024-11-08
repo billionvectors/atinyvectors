@@ -1,4 +1,4 @@
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "gtest/gtest.h"
 #include "DatabaseManager.hpp"
 #include "Vector.hpp"
@@ -11,8 +11,8 @@
 using namespace atinyvectors;
 using namespace atinyvectors::algo;
 
-// Test Fixture for HnswIndexLRUCache
-class HnswIndexLRUCacheTest : public ::testing::Test {
+// Test Fixture for FaissIndexLRUCache
+class FaissIndexLRUCacheTest : public ::testing::Test {
 protected:
     void SetUp() override {
         SpaceManager::getInstance();
@@ -81,16 +81,16 @@ protected:
     int vectorIndexIds[4];
 };
 
-TEST_F(HnswIndexLRUCacheTest, TestGetAndPut) {
-    auto& cache = HnswIndexLRUCache::getInstance();
+TEST_F(FaissIndexLRUCacheTest, TestGetAndPut) {
+    auto& cache = FaissIndexLRUCache::getInstance();
     auto manager = cache.get(vectorIndexIds[0]);
 
     // Basic check that the manager is fetched without error
     ASSERT_NE(manager, nullptr);
 }
 
-TEST_F(HnswIndexLRUCacheTest, TestReAccessEvictedInstance) {
-    auto& cache = HnswIndexLRUCache::getInstance();
+TEST_F(FaissIndexLRUCacheTest, TestReAccessEvictedInstance) {
+    auto& cache = FaissIndexLRUCache::getInstance();
 
     auto manager1 = cache.get(vectorIndexIds[0]);
     cache.get(vectorIndexIds[1]);

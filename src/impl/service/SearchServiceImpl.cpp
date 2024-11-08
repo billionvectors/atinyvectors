@@ -1,5 +1,5 @@
 #include "service/SearchService.hpp"
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Space.hpp"
 #include "Version.hpp"
 #include "VectorIndex.hpp"
@@ -19,7 +19,7 @@ namespace atinyvectors {
 namespace service {
 
 // Function to perform a search using the query JSON string
-std::vector<std::pair<float, hnswlib::labeltype>> SearchServiceManager::search(const std::string& spaceName, int versionUniqueId, const std::string& queryJsonStr, size_t k) {
+std::vector<std::pair<float, int>> SearchServiceManager::search(const std::string& spaceName, int versionUniqueId, const std::string& queryJsonStr, size_t k) {
     // Parse the JSON query string
     nlohmann::json queryJson;
     try {
@@ -50,7 +50,7 @@ std::vector<std::pair<float, hnswlib::labeltype>> SearchServiceManager::search(c
     }
 
     // Get the HnswIndexManager instance from the cache
-    auto hnswIndexManager = HnswIndexLRUCache::getInstance().get(vectorIndexId);
+    auto hnswIndexManager = FaissIndexLRUCache::getInstance().get(vectorIndexId);
     if (!hnswIndexManager) {
         spdlog::error("HnswIndexManager instance not found for vectorIndexId: {}", vectorIndexId);
         throw std::runtime_error("HnswIndexManager not found.");
@@ -63,7 +63,7 @@ std::vector<std::pair<float, hnswlib::labeltype>> SearchServiceManager::search(c
     }
 
     // Perform search based on vector type
-    std::vector<std::pair<float, hnswlib::labeltype>> initialResults;
+    std::vector<std::pair<float, int>> initialResults;
     if (isSparse) {
         // Extract Sparse Vector data
         nlohmann::json sparseData = queryJson["sparse_data"];
@@ -123,7 +123,7 @@ int SearchServiceManager::findVectorIndexBySpaceNameAndVersionUniqueId(const std
     return IdCache::getInstance().getVectorIndexId(spaceName, outVersionUniqueId);
 }
 
-nlohmann::json SearchServiceManager::extractSearchResultsToJson(const std::vector<std::pair<float, hnswlib::labeltype>>& searchResults) {
+nlohmann::json SearchServiceManager::extractSearchResultsToJson(const std::vector<std::pair<float, int>>& searchResults) {
     nlohmann::json result = nlohmann::json::array();
     for (const auto& [distance, label] : searchResults) {
         result.push_back({

@@ -1,9 +1,12 @@
-#ifndef __ATINYVECTORS_HNSW_INDEX_MANAGER_HPP__
-#define __ATINYVECTORS_HNSW_INDEX_MANAGER_HPP__
+#ifndef __ATINYVECTORS_FAISS_INDEX_MANAGER_HPP__
+#define __ATINYVECTORS_FAISS_INDEX_MANAGER_HPP__
 
 #include <vector>
 #include <string>
-#include "hnswlib/hnswlib.h"
+#include <memory>
+#include "faiss/Index.h"
+#include "faiss/IndexHNSW.h"
+#include "faiss/IndexFlat.h"
 #include "nlohmann/json.hpp"
 #include "ValueType.hpp"
 
@@ -12,19 +15,20 @@ namespace atinyvectors
 namespace algo
 {
 
-class HnswIndexManager {
+class FaissIndexManager {
 public:
-    HnswIndexManager(
+    FaissIndexManager(
         const std::string& indexFileName, 
         int vectorIndexId, int dim, int maxElements, 
-        MetricType metric, VectorValueType valueType, HnswConfig& hnswConfig);    
-    ~HnswIndexManager();
+        MetricType metric, VectorValueType valueType, 
+        const HnswConfig& hnswConfig, const QuantizationConfig& quantizationConfig);
+    ~FaissIndexManager();
 
     void addVectorData(const std::vector<float>& vectorData, int vectorId);
-    std::vector<std::pair<float, hnswlib::labeltype>> search(const std::vector<float>& queryVector, size_t k);
+    std::vector<std::pair<float, int>> search(const std::vector<float>& queryVector, size_t k);
 
     void addVectorData(SparseData* sparseData, int vectorId);
-    std::vector<std::pair<float, hnswlib::labeltype>> search(SparseData* sparseQueryVector, size_t k);
+    std::vector<std::pair<float, int>> search(SparseData* sparseQueryVector, size_t k);
 
     void restoreVectorsToIndex();
     void saveIndex();
@@ -33,7 +37,9 @@ public:
     bool indexNeedsUpdate();
 
 private:
-    void setSpace(VectorValueType valueType, MetricType metric);
+    void setIndex(
+        VectorValueType valueType, MetricType metric, 
+        const HnswConfig& hnswConfig, const QuantizationConfig& quantizationConfig);
     void setOptimizerSettings();
     std::vector<float> normalizeVector(const std::vector<float>& vector);
     void normalizeSparseVector(SparseData* sparseVector);
@@ -44,12 +50,10 @@ public:
     VectorValueType valueType;
     int dim;
     int maxElements;
-    hnswlib::HierarchicalNSW<float>* index;
+    std::unique_ptr<faiss::Index> index;
 
 private:
-    hnswlib::SpaceInterface<float>* space;
     MetricType metricType;
-    HnswConfig* hnswConfig;
     bool indexLoaded;
 };
 

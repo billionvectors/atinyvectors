@@ -1,11 +1,13 @@
 // VectorManagerImpl.cpp
+#include <sstream>
+#include <cstring>
+#include <unordered_set>
+
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
 #include "DatabaseManager.hpp"
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include <SQLiteCpp/SQLiteCpp.h>
-#include <sstream>
-#include <cstring>
 #include "spdlog/spdlog.h"
 #include "Config.hpp"
 
@@ -109,7 +111,10 @@ int VectorManager::addVector(Vector& vector) {
 
         spdlog::debug("Processing VectorValue entries for vector ID: {}", vector.id);
 
-        for (auto& value : vector.values) {
+        for (auto& value : vector.values) {            
+            auto hnswManager = FaissIndexLRUCache::getInstance().get(value.vectorIndexId);
+            hnswManager->restoreVectorsToIndex();
+
             spdlog::debug("Inserting VectorValue for vector ID: {}, vectorIndexId: {}", vector.id, value.vectorIndexId);
 
             SQLite::Statement valueQuery(db, "INSERT INTO VectorValue (vectorId, vectorIndexId, type, data) VALUES (?, ?, ?, ?)");
@@ -126,8 +131,6 @@ int VectorManager::addVector(Vector& vector) {
             // Process based on vector type
             if (value.type == VectorValueType::Dense || value.type == VectorValueType::Sparse || value.type == VectorValueType::MultiVector) {
                 spdlog::debug("Processing HNSW index update for vector ID: {}", vector.id);
-
-                auto hnswManager = HnswIndexLRUCache::getInstance().get(value.vectorIndexId);
 
                 if (value.type == VectorValueType::Dense) {
                     hnswManager->addVectorData(value.denseData, vector.unique_id);

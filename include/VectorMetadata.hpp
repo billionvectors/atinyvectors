@@ -6,7 +6,6 @@
 #include <vector>
 #include <mutex>
 #include <memory>
-#include "hnswlib/hnswlib.h"
 
 namespace atinyvectors {
 
@@ -47,8 +46,8 @@ public:
     void deleteVectorMetadata(long id);
     void deleteVectorMetadataByVectorId(long vectorId);
 
-    std::vector<std::pair<float, hnswlib::labeltype>> filterVectors(
-        const std::vector<std::pair<float, hnswlib::labeltype>>& inputVectors,
+    std::vector<std::pair<float, int>> filterVectors(
+        const std::vector<std::pair<float, int>>& inputVectors,
         const std::string& filter);
 };
 

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "service/SpaceService.hpp"
 #include "service/VectorService.hpp"
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
 #include "Snapshot.hpp"
 #include "Space.hpp"
@@ -58,7 +58,7 @@ protected:
         db.exec("DELETE FROM RbacToken;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
@@ -83,9 +83,7 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
         },
         "quantization_config": {
             "scalar": {
-                "type": "int8",
-                "quantile": 0.99,
-                "always_ram": true
+                "type": "int8"
             }
         },
         "dense": {
@@ -97,8 +95,7 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
             },
             "quantization_config": {
                 "scalar": {
-                    "type": "int8",
-                    "quantile": 0.8
+                    "type": "int8"
                 }
             }
         },
@@ -114,8 +111,7 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
                 },
                 "quantization_config": {
                     "scalar": {
-                        "type": "int8",
-                        "quantile": 0.6
+                        "type": "int8"
                     }
                 }
             },
@@ -127,8 +123,7 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
                 },
                 "quantization_config": {
                     "scalar": {
-                        "type": "int8",
-                        "quantile": 0.6
+                        "type": "int8"
                     }
                 }
             }
@@ -138,45 +133,39 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
     SpaceServiceManager manager;
     manager.createSpace(inputJson);
 
-    // Space 확인
     auto spaces = SpaceManager::getInstance().getAllSpaces();
     ASSERT_EQ(spaces.size(), 1);
 
-    // Version 확인
     auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaces[0].id);
     ASSERT_EQ(versions.size(), 1);
 
-    // VectorIndex 가져오기
     auto vectorIndexes = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versions[0].id);
-    ASSERT_EQ(vectorIndexes.size(), 4);  // Dense, Sparse, index1, index2 인덱스 4개
+    ASSERT_EQ(vectorIndexes.size(), 4);
 
-    // 각 index의 이름을 확인하고, 일치하는 경우에만 검증 수행
     for (const auto& vectorIndex : vectorIndexes) {
         if (vectorIndex.name == Config::getInstance().getDefaultDenseIndexName()) {
-            // Dense Vector와 Optimizer 확인
+
             auto hnswConfig = vectorIndex.getHnswConfig();
             auto quantizationConfig = vectorIndex.getQuantizationConfig();
             EXPECT_EQ(hnswConfig.M, 32);
             EXPECT_EQ(hnswConfig.EfConstruct, 123);
+
+            spdlog::info("quantizationConfig: QuantizationType {}", (int)quantizationConfig.QuantizationType);
             EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.8f);
         } else if (vectorIndex.name == Config::getInstance().getDefaultSparseIndexName()) {
-            // Sparse Vector와 Optimizer 확인
             EXPECT_EQ(vectorIndex.metricType, MetricType::Cosine);
         } else if (vectorIndex.name == "index1") {
-            // 추가된 Index 1 확인
             auto hnswConfig = vectorIndex.getHnswConfig();
             auto quantizationConfig = vectorIndex.getQuantizationConfig();
             EXPECT_EQ(hnswConfig.M, 20);
+            spdlog::info("quantizationConfig: QuantizationType {}", (int)quantizationConfig.QuantizationType);
             EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.6f);
         } else if (vectorIndex.name == "index2") {
-            // 추가된 Index 2 확인
             auto hnswConfig = vectorIndex.getHnswConfig();
             auto quantizationConfig = vectorIndex.getQuantizationConfig();
             EXPECT_EQ(hnswConfig.M, 20);
+            spdlog::info("quantizationConfig: QuantizationType {}", (int)quantizationConfig.QuantizationType);
             EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.6f);
         }
     }
 }
@@ -385,8 +374,7 @@ TEST_F(SpaceServiceManagerTest, UpdateSpaceTest) {
             },
             "quantization_config": {
                 "scalar": {
-                    "type": "int8",
-                    "quantile": 0.8
+                    "type": "int8"
                 }
             }
         },
@@ -430,7 +418,6 @@ TEST_F(SpaceServiceManagerTest, UpdateSpaceTest) {
             EXPECT_EQ(hnswConfig.M, 64);
             EXPECT_EQ(hnswConfig.EfConstruct, 55);
             EXPECT_EQ(quantizationConfig.Scalar.Type, "int8");
-            EXPECT_FLOAT_EQ(quantizationConfig.Scalar.Quantile, 0.8f);
         } else if (vectorIndex.name == Config::getInstance().getDefaultSparseIndexName()) {
             EXPECT_EQ(vectorIndex.metricType, MetricType::Cosine);
             EXPECT_EQ(vectorIndex.dimension, 0); // Sparse index can be no dimension

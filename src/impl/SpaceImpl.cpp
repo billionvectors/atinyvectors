@@ -1,4 +1,4 @@
-#include "algo/HnswIndexLRUCache.hpp"
+#include "algo/FaissIndexLRUCache.hpp"
 #include "Space.hpp"
 #include "DatabaseManager.hpp"
 #include "IdCache.hpp"
@@ -335,7 +335,7 @@ void SpaceManager::deleteSpace(int spaceId) {
         db.exec("COMMIT;");
 
         IdCache::getInstance().clean();
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
     }
     catch (const std::exception& e) {
         // Rollback transaction in case of error

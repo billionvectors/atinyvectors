@@ -16,7 +16,7 @@ void atv_search_service_manager_free(SearchServiceManager* manager) {
 char* atv_search_service_search(SearchServiceManager* manager, const char* spaceName, const int versionUniqueId, const char* queryJsonStr, size_t k) {
     try {
         auto* cppManager = reinterpret_cast<atinyvectors::service::SearchServiceManager*>(manager);
-        std::vector<std::pair<float, hnswlib::labeltype>> results = cppManager->search(spaceName, versionUniqueId, queryJsonStr, k);
+        std::vector<std::pair<float, int>> results = cppManager->search(spaceName, versionUniqueId, queryJsonStr, k);
         nlohmann::json jsonResult = cppManager->extractSearchResultsToJson(results);
         
         // Allocate memory and return JSON string

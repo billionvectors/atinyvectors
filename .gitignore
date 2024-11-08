@@ -27,3 +27,5 @@ build/
 data/
 output/
 dist/
+dependency/
+faiss/

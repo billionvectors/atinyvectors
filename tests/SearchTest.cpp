@@ -1,8 +1,7 @@
 // SearchTest.cpp
 #include <gtest/gtest.h>
 #include "service/VectorService.hpp"
-#include "algo/HnswIndexManager.hpp"
-#include "algo/HnswIndexLRUCache.hpp" 
+#include "algo/FaissIndexLRUCache.hpp" 
 #include "Vector.hpp"
 #include "VectorIndex.hpp"
 #include "VectorMetadata.hpp"
@@ -53,7 +52,7 @@ protected:
         db.exec("DELETE FROM VectorValue;");
 
         // clean data
-        HnswIndexLRUCache::getInstance().clean();
+        FaissIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
@@ -105,7 +104,7 @@ TEST_F(SearchTest, VectorSearchTest) {
     std::vector<float> queryVector = {0.25f, 0.45f, 0.75f, 0.85f};
 
     // Use the HnswIndexLRUCache to perform the search
-    auto hnswIndexManager = HnswIndexLRUCache::getInstance().get(indexId);
+    auto hnswIndexManager = FaissIndexLRUCache::getInstance().get(indexId);
     auto results = hnswIndexManager->search(queryVector, 2);
 
     // Check the search results

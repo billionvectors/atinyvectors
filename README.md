@@ -11,12 +11,13 @@ This project is a library project. If you want to obtain an executable binary, p
 - Customizable indexing configurations using **HNSW and Quantization**.
 - Includes a C API for external integrations.
 
-## Requirements
+## Build Requirements
 
 - Docker
 - CMake 3.14+
 - Clang (or other C++ compiler)
 - GoogleTest for unit testing
+- OpenML & FAISS
 - SQLiteCpp, libzip, antlr4 and nlohmann/json libraries
 
 ## Docs
@@ -25,7 +26,7 @@ For detailed development guidelines and documentation, please refer to the offic
 
 ## Building the Project
 
-The easiest way to build AtinyVectors is to use Docker.
+The easiest way to build atinyvectors is to use Docker.
 
 ### Build the Docker Image
 
