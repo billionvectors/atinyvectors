@@ -184,13 +184,13 @@ private:
         try {
             if (!std::filesystem::exists(dataPath_)) {
                 std::filesystem::create_directories(dataPath_);
-                spdlog::info("Created data directory: {}", dataPath_);
+                spdlog::debug("Created data directory: {}", dataPath_);
             }
         } catch (const std::filesystem::filesystem_error& e) {
             spdlog::error("Error creating data directory {}: {}", dataPath_, e.what());
         }
 
-        spdlog::info("Config initialized - HNSW Cache Capacity: {}, M: {}, EF_CONSTRUCTION: {}, HNSW Max Data Size: {}, Default DB Name: {}, Log File: {}, Log Level: {}, Data Path: {}, Default Token Expire Days: {}, JWT Token Key: {}",
+        spdlog::debug("Config initialized - HNSW Cache Capacity: {}, M: {}, EF_CONSTRUCTION: {}, HNSW Max Data Size: {}, Default DB Name: {}, Log File: {}, Log Level: {}, Data Path: {}, Default Token Expire Days: {}, JWT Token Key: {}",
                      hnswIndexCacheCapacity_, m_, efConstruction_, hnswMaxDataSize_, dbName_, logFile_, logLevel_, dataPath_, defaultTokenExpireDays_, jwtTokenKey_);
 
         initializeLogger();
