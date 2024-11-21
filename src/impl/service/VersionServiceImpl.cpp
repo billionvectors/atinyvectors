@@ -24,19 +24,15 @@ namespace
 {
 
 nlohmann::json fetchVersionDetails(const Version& version) {
-    spdlog::info("Fetching details for versionId: {}, name: {}", version.id, version.name);
-
     nlohmann::json result;
 
-    result["versionId"] = version.unique_id;
+    result["id"] = version.unique_id;
     result["name"] = version.name;
     result["description"] = version.description;
     result["tag"] = version.tag;
     result["created_time_utc"] = version.created_time_utc;
     result["updated_time_utc"] = version.updated_time_utc;
     result["is_default"] = version.is_default;
-
-    spdlog::info("Version details fetched successfully for versionId: {}", version.id);
 
     return result;
 }
@@ -124,8 +120,6 @@ nlohmann::json VersionServiceManager::getLists(const std::string& spaceName) {
             throw std::runtime_error("Space not found.");
         }
 
-        spdlog::info("Found space with name: '{}', spaceId: {}", space.name, space.id);
-
         nlohmann::json result;
         nlohmann::json values = nlohmann::json::array();
 
@@ -133,7 +127,13 @@ nlohmann::json VersionServiceManager::getLists(const std::string& spaceName) {
 
         for (const auto& version : versions) {
             nlohmann::json versionJson;
-            versionJson[version.name] = version.id;
+            versionJson["id"] = version.unique_id;
+            versionJson["name"] = version.name;
+            versionJson["description"] = version.description;
+            versionJson["tag"] = version.tag;
+            versionJson["created_time_utc"] = version.created_time_utc;
+            versionJson["updated_time_utc"] = version.updated_time_utc;
+            versionJson["is_default"] = version.is_default;
             values.push_back(versionJson);
         }
 

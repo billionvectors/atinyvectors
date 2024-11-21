@@ -382,6 +382,16 @@ void SpaceServiceManager::createSpace(const std::string& jsonStr) {
         spaceName = parsedJson["name"];
     }
 
+    // validation
+    try {
+        int versionId = IdCache::getInstance().getDefaultVersionId(spaceName);
+        if (versionId >= 0) {
+            spdlog::info("spaceName: {} alread exists", spaceName);
+            return;
+        }
+    } catch (const std::exception& e) {
+    }
+
     Space space(0, spaceName, spaceDescription, 0, 0);
     int spaceId = SpaceManager::getInstance().addSpace(space);
 
@@ -450,7 +460,11 @@ nlohmann::json SpaceServiceManager::getLists() {
 
     for (const auto& space : spaces) {
         nlohmann::json spaceJson;
-        spaceJson[space.name] = space.id;
+        spaceJson["name"] = space.name;
+        spaceJson["id"] = space.id;
+        spaceJson["description"] = space.description;
+        spaceJson["created_time_utc"] = space.created_time_utc;
+        spaceJson["updated_time_utc"] = space.updated_time_utc;
         values.push_back(spaceJson);
     }
 

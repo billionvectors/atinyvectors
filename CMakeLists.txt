@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(atinyvectors VERSION 0.2.0)
+project(atinyvectors VERSION 0.1.1)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -94,6 +94,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 # Build the library as a SHARED library
 add_library(${PROJECT_NAME} SHARED
   capi/atinyvectors_c_api.cpp
+  capi/atinyvectors_idcache.cpp
   capi/atinyvectors_rbac_c_api.cpp
   capi/atinyvectors_search_c_api.cpp
   capi/atinyvectors_snapshot_c_api.cpp
@@ -180,6 +181,7 @@ add_executable(test_${PROJECT_NAME}
 
   # Source files from the library
   capi/atinyvectors_c_api.cpp
+  capi/atinyvectors_idcache.cpp
   capi/atinyvectors_rbac_c_api.cpp
   capi/atinyvectors_search_c_api.cpp
   capi/atinyvectors_snapshot_c_api.cpp

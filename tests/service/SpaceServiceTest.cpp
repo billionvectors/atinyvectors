@@ -280,10 +280,10 @@ TEST_F(SpaceServiceManagerTest, GetListsTest) {
     bool space2Found = false;
 
     for (const auto& spaceEntry : valuesArray) {
-        if (spaceEntry.contains("space1")) {
+        if (spaceEntry["name"] == "space1") {
             space1Found = true;
         }
-        if (spaceEntry.contains("space2")) {
+        if (spaceEntry["name"] == "space2") {
             space2Found = true;
         }
     }

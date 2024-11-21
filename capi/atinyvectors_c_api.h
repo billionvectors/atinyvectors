@@ -15,6 +15,7 @@ typedef struct VectorServiceManager VectorServiceManager;
 typedef struct VersionServiceManager VersionServiceManager;
 typedef struct SnapshotServiceManager SnapshotServiceManager;
 typedef struct RbacTokenServiceManager RbacTokenServiceManager;
+typedef struct IdCacheManager IdCacheManager;
 
 // C API for SpaceServiceManager
 SpaceServiceManager* atv_space_service_manager_new();
@@ -71,6 +72,17 @@ char* atv_rbac_token_list_tokens(RbacTokenServiceManager* manager);
 void atv_rbac_token_delete_token(RbacTokenServiceManager* manager, const char* token);
 void atv_rbac_token_update_token(RbacTokenServiceManager* manager, const char* token, const char* jsonStr);
 char* atv_rbac_token_generate_jwt_token(RbacTokenServiceManager* manager, int expireDays);
+
+// C API for IdCacheManager
+IdCacheManager* atv_id_cache_manager_new();
+void atv_id_cache_manager_free(IdCacheManager* manager);
+int atv_id_cache_get_version_id(IdCacheManager* manager, const char* spaceName, int versionUniqueId);
+int atv_id_cache_get_default_version_id(IdCacheManager* manager, const char* spaceName);
+int atv_id_cache_get_vector_index_id(IdCacheManager* manager, const char* spaceName, int versionUniqueId);
+char* atv_id_cache_get_space_name_and_version_unique_id(IdCacheManager* manager, int versionId);
+char* atv_id_cache_get_space_name_and_version_unique_id_by_vector_index_id(IdCacheManager* manager, int vectorIndexId);
+void atv_id_cache_clean(IdCacheManager* manager);
+void atv_id_cache_clear_space_name_cache(IdCacheManager* manager);
 
 // Function to free JSON string memory returned by the C API
 void atv_init();

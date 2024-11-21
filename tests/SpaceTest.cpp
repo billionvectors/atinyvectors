@@ -65,7 +65,12 @@ protected:
         db.exec("DELETE FROM VectorIndex;");
         db.exec("DELETE FROM Version;");
         db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
+        
+        try {
+            db.exec("DELETE FROM Vector;"); // we will drop vector table in "DeleteSpaceWithoutVectorTable"
+        } catch (const SQLite::Exception& e) {
+        }
+
         db.exec("DELETE FROM VectorValue;");
         db.exec("DELETE FROM RbacToken;");
     }
@@ -130,4 +135,26 @@ TEST_F(SpaceManagerTest, HandleNonExistentSpace) {
 
     // Trying to get a space with an ID that does not exist
     EXPECT_THROW(manager.getSpaceById(999), std::runtime_error);
+}
+
+// Test for deleting a space when Vector table is missing
+TEST_F(SpaceManagerTest, DeleteSpaceWithoutVectorTable) {
+    SpaceManager& manager = SpaceManager::getInstance();
+    auto& db = DatabaseManager::getInstance().getDatabase();
+
+    // 1. Add a test space
+    Space space(0, "Test Space", "A space for testing", 1627906032, 1627906032);
+    int spaceId = manager.addSpace(space);
+
+    // 2. Simulate Vector table deletion
+    db.exec("DROP TABLE IF EXISTS Vector;");
+
+    // 3. Attempt to delete the space
+    EXPECT_NO_THROW({
+        manager.deleteSpace(spaceId);
+    });
+
+    // 4. Verify that the space is deleted
+    auto spaces = manager.getAllSpaces();
+    EXPECT_TRUE(spaces.empty());
 }

@@ -126,7 +126,7 @@ TEST_F(VersionServiceManagerTest, GetByVersionId) {
     auto versionJson = manager.getByVersionId("Test Space", 1);
 
     // Validate the JSON output
-    ASSERT_TRUE(versionJson.contains("versionId"));
+    ASSERT_TRUE(versionJson.contains("id"));
     ASSERT_EQ(versionJson["name"], "Version 1.0");
     ASSERT_EQ(versionJson["description"], "Initial version");
     ASSERT_EQ(versionJson["tag"], "v1.0");
@@ -154,7 +154,7 @@ TEST_F(VersionServiceManagerTest, GetByVersionName) {
     auto versionJson = manager.getByVersionName("Test Space", "Version 1.0");
 
     // Validate the JSON output
-    ASSERT_TRUE(versionJson.contains("versionId"));
+    ASSERT_TRUE(versionJson.contains("id"));
     ASSERT_EQ(versionJson["name"], "Version 1.0");
     ASSERT_EQ(versionJson["description"], "Initial version");
     ASSERT_EQ(versionJson["tag"], "v1.0");
@@ -182,7 +182,7 @@ TEST_F(VersionServiceManagerTest, GetDefaultVersion) {
     auto defaultVersionJson = manager.getDefaultVersion("Test Space");
 
     // Validate the JSON output
-    ASSERT_TRUE(defaultVersionJson.contains("versionId"));
+    ASSERT_TRUE(defaultVersionJson.contains("id"));
     ASSERT_EQ(defaultVersionJson["name"], "Default Version");
     ASSERT_EQ(defaultVersionJson["description"], "This is the default version");
     ASSERT_EQ(defaultVersionJson["tag"], "default");
@@ -225,10 +225,10 @@ TEST_F(VersionServiceManagerTest, GetLists) {
     bool version2Found = false;
 
     for (const auto& versionEntry : valuesArray) {
-        if (versionEntry.contains("Version 1.0")) {
+        if (versionEntry["name"] == "Version 1.0") {
             version1Found = true;
         }
-        if (versionEntry.contains("Version 2.0")) {
+        if (versionEntry["name"] == "Version 2.0") {
             version2Found = true;
         }
     }
