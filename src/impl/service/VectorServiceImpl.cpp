@@ -1,5 +1,6 @@
 // VectorServiceImpl.cpp
 #include "service/VectorService.hpp"
+#include "BM25.hpp"
 #include "Space.hpp"
 #include "Version.hpp"
 #include "Vector.hpp"
@@ -98,6 +99,16 @@ void VectorServiceManager::upsert(const std::string& spaceName, int versionUniqu
                     VectorMetadata metadata(0, addedVectorId, key, value.get<std::string>());
                     VectorMetadataManager::getInstance().addVectorMetadata(metadata);
                 }
+            }
+
+            // Add document and tokens to BM25 if present
+            if (vectorJson.contains("doc") && vectorJson.contains("doc_tokens")) {
+                std::string doc = vectorJson["doc"].get<std::string>();
+                std::vector<std::string> docTokens = vectorJson["doc_tokens"].get<std::vector<std::string>>();
+
+                spdlog::debug("Adding document to BM25Manager. VectorId={}, Doc={}, Tokens={}", 
+                              addedVectorId, doc, docTokens.size());
+                BM25Manager::getInstance().addDocument(addedVectorId, doc, docTokens);
             }
         }
     }
@@ -300,6 +311,15 @@ void VectorServiceManager::processVectors(const json& parsedJson, int versionId,
                 VectorMetadataManager::getInstance().addVectorMetadata(metadata);
             }
         }
+
+        if (vectorJson.contains("doc") && vectorJson.contains("doc_tokens")) {
+            std::string doc = vectorJson["doc"].get<std::string>();
+            std::vector<std::string> docTokens = vectorJson["doc_tokens"].get<std::vector<std::string>>();
+
+            spdlog::debug("Adding document to BM25Manager. VectorId={}, Doc={}, Tokens={}", 
+                            addedVectorId, doc, docTokens.size());
+            BM25Manager::getInstance().addDocument(addedVectorId, doc, docTokens);
+        }
     }
 }
 
@@ -344,6 +364,15 @@ json VectorServiceManager::getVectorsByVersionId(const std::string& spaceName, i
         }
 
         vectorJson["metadata"] = metadataJson;
+
+        try {
+            std::string doc = BM25Manager::getInstance().getDocByVectorId(vector.id);
+            if (!doc.empty()) {
+                vectorJson["doc"] = doc;
+            }
+        } catch (const std::exception& e) {
+        }
+
         vectorsJson.push_back(vectorJson);
     }
 

@@ -49,27 +49,6 @@ std::unique_ptr<VectorIndexManager> VectorIndexManager::instance;
 std::mutex VectorIndexManager::instanceMutex;
 
 VectorIndexManager::VectorIndexManager() {
-    createTable();
-}
-
-void VectorIndexManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    db.exec("CREATE TABLE IF NOT EXISTS VectorIndex ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "versionId INTEGER NOT NULL, "
-            "vectorValueType INTEGER, "
-            "name TEXT NOT NULL, "
-            "metricType INTEGER, "
-            "dimension INTEGER, "
-            "hnswConfigJson TEXT, "
-            "quantizationConfigJson TEXT, "
-            "create_date_utc INTEGER, "
-            "updated_time_utc INTEGER, "
-            "is_default BOOLEAN DEFAULT 0, "
-            "FOREIGN KEY(versionId) REFERENCES Version(id));");
-
-    // Create an index on the unique_id column in Version table
-    db.exec("CREATE INDEX IF NOT EXISTS idx_vectorindex_version_id ON VectorIndex(versionId);");
 }
 
 VectorIndexManager& VectorIndexManager::getInstance() {

@@ -7,8 +7,7 @@
 #include <string>
 #include "Config.hpp"
 
-namespace atinyvectors
-{
+namespace atinyvectors {
 
 class DatabaseManager {
 private:
@@ -16,18 +15,32 @@ private:
     static std::mutex instanceMutex;
     
     SQLite::Database db;
+    std::string migrationPath;
 
-    DatabaseManager(const std::string& dbFileName);
+    DatabaseManager(const std::string& dbFileName, const std::string& migrationDir);
+
+    bool checkInfoTable();
+    void updateDatabaseVersion(int newVersion, const std::string& projectVersion);
 
 public:
     DatabaseManager(const DatabaseManager&) = delete;
     DatabaseManager& operator=(const DatabaseManager&) = delete;
 
-    static DatabaseManager& getInstance(const std::string& dbFileName = atinyvectors::Config::getInstance().getDbName());
+    static DatabaseManager& getInstance(
+        const std::string& dbFileName = atinyvectors::Config::getInstance().getDbName(),
+        const std::string& migrationDir = "db");
 
     SQLite::Database& getDatabase();
+
+    void reset();
+    void migrate();
+    int getDatabaseVersion();
+
+    // Setter for migration directory
+    void setMigrationPath(const std::string& path) { migrationPath = path; }
+    const std::string& getMigrationPath() const { return migrationPath; }
 };
 
-};
+}
 
 #endif

@@ -70,8 +70,6 @@ public:
     VectorIndexManager& operator=(const VectorIndexManager&) = delete;
 
     static VectorIndexManager& getInstance();
-    
-    void createTable();
 
     int addVectorIndex(VectorIndex& vectorIndex);
     std::vector<VectorIndex> getAllVectorIndices();

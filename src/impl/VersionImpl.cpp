@@ -55,28 +55,6 @@ std::unique_ptr<VersionManager> VersionManager::instance;
 std::mutex VersionManager::instanceMutex;
 
 VersionManager::VersionManager() {
-    createTable();
-}
-
-void VersionManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    db.exec("CREATE TABLE IF NOT EXISTS Version ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "spaceId INTEGER NOT NULL, "
-            "unique_id INTEGER NOT NULL, "
-            "name TEXT NOT NULL, "
-            "description TEXT, "
-            "tag TEXT, "
-            "created_time_utc INTEGER, "
-            "updated_time_utc INTEGER, "
-            "is_default BOOLEAN DEFAULT 0, "
-            "FOREIGN KEY(spaceId) REFERENCES Space(id) "
-            ");");
-
-    // Create an index on the unique_id column in Version table
-    db.exec("CREATE INDEX IF NOT EXISTS idx_version_unique_id ON Version(unique_id);");
-
-    IdCache::getInstance().clean();
 }
 
 VersionManager& VersionManager::getInstance() {

@@ -15,30 +15,10 @@ using namespace atinyvectors::utils;
 class VersionManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Initialize managers
-        SpaceManager::getInstance();
-        VectorIndexManager::getInstance();
-        VersionManager::getInstance();
-        VectorManager::getInstance();
-        DatabaseManager::getInstance();
-
-        // Clear relevant tables to ensure a clean state before each test
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
+        DatabaseManager::getInstance().reset();
     }
 
     void TearDown() override {
-        // Clear relevant tables after each test to maintain isolation
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
     }
 };
 

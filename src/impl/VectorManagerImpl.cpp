@@ -18,28 +18,6 @@ std::unique_ptr<VectorManager> VectorManager::instance;
 std::mutex VectorManager::instanceMutex;
 
 VectorManager::VectorManager() {
-    createTable();
-}
-
-void VectorManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    db.exec("CREATE TABLE IF NOT EXISTS Vector ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "versionId INTEGER NOT NULL, "
-            "unique_id INTEGER NOT NULL, "
-            "type INTEGER, "
-            "deleted BOOLEAN DEFAULT 0);");
-    db.exec("CREATE TABLE IF NOT EXISTS VectorValue ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            "vectorId INTEGER NOT NULL,"
-            "vectorIndexId INTEGER NOT NULL,"
-            "type INTEGER,"
-            "data BLOB,"
-            "FOREIGN KEY(vectorId) REFERENCES Vector(id),"
-            "FOREIGN KEY(vectorIndexId) REFERENCES VectorIndex(id));");
-
-    // Create an index on the unique_id column in Vector table
-    db.exec("CREATE INDEX IF NOT EXISTS idx_vector_unique_id ON Vector(unique_id);");
 }
 
 VectorManager& VectorManager::getInstance() {

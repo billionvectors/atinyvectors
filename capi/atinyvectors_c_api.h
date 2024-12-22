@@ -15,6 +15,7 @@ typedef struct VectorServiceManager VectorServiceManager;
 typedef struct VersionServiceManager VersionServiceManager;
 typedef struct SnapshotServiceManager SnapshotServiceManager;
 typedef struct RbacTokenServiceManager RbacTokenServiceManager;
+typedef struct RerankServiceManager RerankServiceManager;
 typedef struct IdCacheManager IdCacheManager;
 
 // C API for SpaceServiceManager
@@ -72,6 +73,11 @@ char* atv_rbac_token_list_tokens(RbacTokenServiceManager* manager);
 void atv_rbac_token_delete_token(RbacTokenServiceManager* manager, const char* token);
 void atv_rbac_token_update_token(RbacTokenServiceManager* manager, const char* token, const char* jsonStr);
 char* atv_rbac_token_generate_jwt_token(RbacTokenServiceManager* manager, int expireDays);
+
+// C API for RerankServiceManager
+RerankServiceManager* atv_rerank_service_manager_new();
+void atv_rerank_service_manager_free(RerankServiceManager* manager);
+char* atv_rerank_service_rerank(RerankServiceManager* manager, const char* spaceName, const int versionUniqueId, const char* queryJsonStr, size_t k);
 
 // C API for IdCacheManager
 IdCacheManager* atv_id_cache_manager_new();

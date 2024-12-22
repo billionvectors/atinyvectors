@@ -20,27 +20,6 @@ bool RbacToken::isExpire() const {
 }
 
 RbacTokenManager::RbacTokenManager() {
-    createTable();
-}
-
-void RbacTokenManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    db.exec("CREATE TABLE IF NOT EXISTS RbacToken ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "token TEXT NOT NULL, "
-            "space_id INTEGER NOT NULL, "
-            "system_permission INTEGER NOT NULL, "
-            "space_permission INTEGER NOT NULL, "
-            "version_permission INTEGER NOT NULL, "
-            "vector_permission INTEGER NOT NULL, "
-            "search_permission INTEGER NOT NULL, "
-            "snapshot_permission INTEGER NOT NULL, "
-            "security_permission INTEGER NOT NULL, "
-            "keyvalue_permission INTEGER NOT NULL, "
-            "expire_time_utc INTEGER NOT NULL);");
-
-    db.exec("CREATE INDEX IF NOT EXISTS idx_rbac_expire_time_utc ON RbacToken(expire_time_utc);");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_rbac_token_expire ON RbacToken(token, expire_time_utc);");
 }
 
 RbacTokenManager& RbacTokenManager::getInstance() {

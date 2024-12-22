@@ -183,7 +183,7 @@ std::string findBackupFile(const std::string& targetDirectory) {
 
 void createManifestJson(const std::string& snapshotDirectory, const std::vector<std::pair<std::string, int>>& indexes) {
     nlohmann::json manifest;
-    manifest["version"] = Config::getInstance().getApiVersion();
+    manifest["version"] = Config::getInstance().getProjectVersion();
     manifest["create_date"] = getCurrentFormattedTime();
 
     for (const auto& index : indexes) {
@@ -209,18 +209,6 @@ std::unique_ptr<SnapshotManager> SnapshotManager::instance;
 std::mutex SnapshotManager::instanceMutex;
 
 SnapshotManager::SnapshotManager() {
-    createTable();
-}
-
-void SnapshotManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    
-    db.exec("CREATE TABLE IF NOT EXISTS Snapshot ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "request_json TEXT NOT NULL, "
-            "file_name TEXT NOT NULL, "
-            "created_time_utc INTEGER "
-            ");");
 }
 
 SnapshotManager& SnapshotManager::getInstance() {

@@ -153,20 +153,6 @@ std::unique_ptr<SpaceManager> SpaceManager::instance;
 std::mutex SpaceManager::instanceMutex;
 
 SpaceManager::SpaceManager() {
-    createTable();
-}
-
-void SpaceManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    db.exec("CREATE TABLE IF NOT EXISTS Space ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "name TEXT NOT NULL, "
-            "description TEXT, "
-            "created_time_utc INTEGER, "
-            "updated_time_utc INTEGER);");
-            
-    // Create an index on the name column
-    db.exec("CREATE INDEX IF NOT EXISTS idx_space_name ON Space(name);");
 }
 
 SpaceManager& SpaceManager::getInstance() {

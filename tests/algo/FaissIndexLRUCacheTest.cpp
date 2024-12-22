@@ -15,19 +15,7 @@ using namespace atinyvectors::algo;
 class FaissIndexLRUCacheTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        SpaceManager::getInstance();
-        VectorIndexManager::getInstance();
-        VersionManager::getInstance();
-        VectorMetadataManager::getInstance();
-        VectorManager::getInstance();
-
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
+        DatabaseManager::getInstance().reset();
 
         dim = 16;
 
@@ -35,13 +23,6 @@ protected:
     }
 
     void TearDown() override {
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
     }
 
     void createDummyData() {

@@ -34,8 +34,6 @@ public:
     SnapshotManager& operator=(const SnapshotManager&) = delete;
 
     static SnapshotManager& getInstance();
-
-    void createTable();
     
     int createSnapshot(const std::vector<std::pair<std::string, int>>& versionInfoList, const std::string& fileName, const std::string& metaDirectory);
     void restoreSnapshot(const std::string& zipFileName, const std::string& targetDirectory);

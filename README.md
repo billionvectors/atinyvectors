@@ -9,6 +9,7 @@ This project is a library project. If you want to obtain an executable binary, p
 - **Efficient vector search** using HNSW (Hierarchical Navigable Small World) graph.
 - Supports **dense and sparse** vector types.
 - Customizable indexing configurations using **HNSW and Quantization**.
+- Provides reranking of initial search results using advanced scoring techniques like **BM25**
 - Includes a C API for external integrations.
 
 ## Build Requirements

@@ -40,16 +40,6 @@ std::unique_ptr<VectorMetadataManager> VectorMetadataManager::instance;
 std::mutex VectorMetadataManager::instanceMutex;
 
 VectorMetadataManager::VectorMetadataManager() {
-    createTable();
-}
-
-void VectorMetadataManager::createTable() {
-    auto& db = DatabaseManager::getInstance().getDatabase();
-    db.exec("CREATE TABLE IF NOT EXISTS VectorMetadata ("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            "vectorId INTEGER NOT NULL, "
-            "key TEXT NOT NULL, "
-            "value TEXT);");
 }
 
 VectorMetadataManager& VectorMetadataManager::getInstance() {

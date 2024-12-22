@@ -22,57 +22,12 @@ protected:
     void SetUp() override {
         IdCache::getInstance().clean();
 
-        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
-        snapshotManager.createTable();
-
-        SpaceManager& spaceManager = SpaceManager::getInstance();
-        spaceManager.createTable();
-        
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        vectorIndexManager.createTable();
-
-        VersionManager& versionManager = VersionManager::getInstance();
-        versionManager.createTable();
-
-        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
-        metadataManager.createTable();
-
-        VectorManager& vectorManager = VectorManager::getInstance();
-        vectorManager.createTable();
-
-        RbacTokenManager& rbacTokenManager = RbacTokenManager::getInstance();
-        rbacTokenManager.createTable();
-
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM RbacToken;");
-
         // clean data
+        DatabaseManager::getInstance().reset();
         FaissIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
-        // Clear data after each test
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        
-        try {
-            db.exec("DELETE FROM Vector;"); // we will drop vector table in "DeleteSpaceWithoutVectorTable"
-        } catch (const SQLite::Exception& e) {
-        }
-
-        db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM RbacToken;");
     }
 };
 

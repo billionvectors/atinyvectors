@@ -1,12 +1,17 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.24.0)
 
-project(atinyvectors VERSION 0.1.1)
+project(atinyvectors VERSION 0.2.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+add_compile_definitions(ATINYVECTORS_PROJECT_VERSION="${PROJECT_VERSION}")
+
 # Ensure position-independent code is enabled for shared libraries
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set(DB_FOLDER "${CMAKE_SOURCE_DIR}/db")
+set(MOCKDB_FOLDER "${CMAKE_SOURCE_DIR}/mockdb")
 
 include(FetchContent)
 
@@ -96,6 +101,7 @@ add_library(${PROJECT_NAME} SHARED
   capi/atinyvectors_c_api.cpp
   capi/atinyvectors_idcache.cpp
   capi/atinyvectors_rbac_c_api.cpp
+  capi/atinyvectors_rerank_c_api.cpp
   capi/atinyvectors_search_c_api.cpp
   capi/atinyvectors_snapshot_c_api.cpp
   capi/atinyvectors_space_c_api.cpp
@@ -108,7 +114,9 @@ add_library(${PROJECT_NAME} SHARED
   src/impl/filter/FilterManager.cpp
   src/impl/filter/SQLBuilderVisitor.cpp
 
+  src/impl/service/BM25ServiceImpl.cpp
   src/impl/service/RbacTokenServiceImpl.cpp 
+  src/impl/service/RerankServiceImpl.cpp
   src/impl/service/SearchServiceImpl.cpp 
   src/impl/service/SnapshotServiceImpl.cpp 
   src/impl/service/SpaceServiceImpl.cpp 
@@ -117,6 +125,7 @@ add_library(${PROJECT_NAME} SHARED
 
   src/impl/utils/UtilsImpl.cpp
 
+  src/impl/BM25Impl.cpp 
   src/impl/ConfigImpl.cpp 
   src/impl/DatabaseManagerImpl.cpp 
   src/impl/IdCacheImpl.cpp 
@@ -153,6 +162,19 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_compile_options(${PROJECT_NAME} PRIVATE ${disabled_compile_warnings})
 
+# Copy db folder to the build directory for tests
+add_custom_target(copy_db_files ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:test_${PROJECT_NAME}>/db
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DB_FOLDER} $<TARGET_FILE_DIR:test_${PROJECT_NAME}>/db
+    COMMENT "Copying db folder to test executable directory."
+)
+
+add_custom_target(copy_mockdb_files ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:test_${PROJECT_NAME}>/mockdb
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${MOCKDB_FOLDER} $<TARGET_FILE_DIR:test_${PROJECT_NAME}>/mockdb
+    COMMENT "Copying mockdb folder to test executable directory."
+)
+
 # Add executable for the test program
 add_executable(test_${PROJECT_NAME}
   tests/algo/FaissIndexManagerTest.cpp
@@ -161,14 +183,18 @@ add_executable(test_${PROJECT_NAME}
   tests/filter/FilterManagerTest.cpp
   tests/filter/SQLBuilderVisitorTest.cpp
 
+  tests/service/BM25ServiceTest.cpp
   tests/service/RbacTokenServiceTest.cpp
+  tests/service/RerankServiceTest.cpp
   tests/service/SearchServiceTest.cpp
   tests/service/SnapshotServiceTest.cpp
   tests/service/SpaceServiceTest.cpp
   tests/service/VectorServiceTest.cpp
   tests/service/VersionServiceTest.cpp
 
+  tests/BM25Test.cpp 
   tests/ConfigTest.cpp 
+  tests/DatabaseManagerTest.cpp
   tests/IdCacheTest.cpp 
   tests/RbacTokenTest.cpp 
   tests/SearchTest.cpp 
@@ -183,6 +209,7 @@ add_executable(test_${PROJECT_NAME}
   capi/atinyvectors_c_api.cpp
   capi/atinyvectors_idcache.cpp
   capi/atinyvectors_rbac_c_api.cpp
+  capi/atinyvectors_rerank_c_api.cpp
   capi/atinyvectors_search_c_api.cpp
   capi/atinyvectors_snapshot_c_api.cpp
   capi/atinyvectors_space_c_api.cpp
@@ -192,7 +219,9 @@ add_executable(test_${PROJECT_NAME}
   src/impl/algo/FaissIndexManagerImpl.cpp
   src/impl/algo/FaissIndexLRUCacheImpl.cpp
 
+  src/impl/service/BM25ServiceImpl.cpp
   src/impl/service/RbacTokenServiceImpl.cpp 
+  src/impl/service/RerankServiceImpl.cpp
   src/impl/service/SearchServiceImpl.cpp 
   src/impl/service/SnapshotServiceImpl.cpp 
   src/impl/service/SpaceServiceImpl.cpp 
@@ -204,6 +233,7 @@ add_executable(test_${PROJECT_NAME}
   src/impl/filter/FilterManager.cpp
   src/impl/filter/SQLBuilderVisitor.cpp
 
+  src/impl/BM25Impl.cpp 
   src/impl/ConfigImpl.cpp 
   src/impl/DatabaseManagerImpl.cpp 
   src/impl/IdCacheImpl.cpp 

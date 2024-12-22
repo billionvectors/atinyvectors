@@ -13,49 +13,13 @@ using namespace atinyvectors;
 class IdCacheTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Set up all managers and clear previous test data
-        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
-        snapshotManager.createTable();
-
-        SpaceManager& spaceManager = SpaceManager::getInstance();
-        spaceManager.createTable();
-        
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        vectorIndexManager.createTable();
-
-        VersionManager& versionManager = VersionManager::getInstance();
-        versionManager.createTable();
-
-        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
-        metadataManager.createTable();
-
-        VectorManager& vectorManager = VectorManager::getInstance();
-        vectorManager.createTable();
-
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
+        DatabaseManager::getInstance().reset();
 
         createDummyData();
     }
 
     void TearDown() override {
-        // Clean up the cache and any other resources after each test
         IdCache::getInstance().clean();
-
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
     }
 
     void createDummyData() {

@@ -25,38 +25,8 @@ protected:
     void SetUp() override {
         IdCache::getInstance().clean();
 
-        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
-        snapshotManager.createTable();
-
-        SpaceManager& spaceManager = SpaceManager::getInstance();
-        spaceManager.createTable();
-        
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        vectorIndexManager.createTable();
-
-        VersionManager& versionManager = VersionManager::getInstance();
-        versionManager.createTable();
-
-        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
-        metadataManager.createTable();
-
-        VectorManager& vectorManager = VectorManager::getInstance();
-        vectorManager.createTable();
-
-        RbacTokenManager& rbacTokenManager = RbacTokenManager::getInstance();
-        rbacTokenManager.createTable();
-
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM RbacToken;");
-
         // clean data
+        DatabaseManager::getInstance().reset();
         FaissIndexLRUCache::getInstance().clean();
 
         // Create a temporary metaDirectory for testing
@@ -72,7 +42,7 @@ protected:
         // create dummy data
         // Add a new space and capture the returned spaceId
         Space space(0, "CreateAndRestoreSnapshot", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
-        spaceId = spaceManager.addSpace(space);
+        spaceId = SpaceManager::getInstance().addSpace(space);
 
         // Add a version to the space
         Version version;
@@ -82,7 +52,7 @@ protected:
         version.tag = "v1.0";
         version.is_default = true;
 
-        versionId = versionManager.addVersion(version);
+        versionId = VersionManager::getInstance().addVersion(version);
 
         HnswConfig hnswConfig(16, 200);
         QuantizationConfig quantizationConfig;
@@ -90,24 +60,13 @@ protected:
         // Add a new vector index
         VectorIndex vectorIndex(0, versionId, VectorValueType::Dense, "Vector Index 1", MetricType::L2, 128,
                                 hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 1627906032, 1627906032, true);
-        vectorIndexId = vectorIndexManager.addVectorIndex(vectorIndex);
+        vectorIndexId = VectorIndexManager::getInstance().addVectorIndex(vectorIndex);
 
         IdCache& cache = IdCache::getInstance();
         versionUniqueId = cache.getDefaultUniqueVersionId("CreateAndRestoreSnapshot");
     }
 
     void TearDown() override {
-        // Clear data after each test
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM RbacToken;");
-
         // Clean up the metaDirectory after tests
         fs::remove_all(metaDirectory);
     }

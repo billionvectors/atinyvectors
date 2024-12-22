@@ -10,6 +10,10 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#ifndef ATINYVECTORS_PROJECT_VERSION
+#define ATINYVECTORS_PROJECT_VERSION "0.2.0"
+#endif
+
 namespace atinyvectors {
 
 class Config {
@@ -24,9 +28,9 @@ public:
     static void reset() {
         instance_.reset(nullptr);  // Reset the instance, forcing reinitialization on next getInstance() call
     }
-
-    std::string getApiVersion() const {
-        return API_VERSION;
+    
+    std::string getProjectVersion() const {
+        return ATINYVECTORS_PROJECT_VERSION;
     }
 
     int getHnswIndexCacheCapacity() const {
@@ -95,7 +99,6 @@ public:
 private:
     static std::unique_ptr<Config> instance_;  // Singleton instance
 
-    const std::string API_VERSION = "0.1.0";
     const int DEFAULT_HNSW_INDEX_CACHE_CAPACITY = 100;
     const int DEFAULT_M = 16;
     const int DEFAULT_EF_CONSTRUCTION = 100;

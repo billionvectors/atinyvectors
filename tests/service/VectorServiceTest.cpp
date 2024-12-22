@@ -1,9 +1,11 @@
 // VectorServiceTest.cpp
 
 #include <gtest/gtest.h>
+#include "service/SpaceService.hpp"
 #include "service/VectorService.hpp"
 #include "algo/FaissIndexLRUCache.hpp"
 #include "utils/Utils.hpp"
+#include "BM25.hpp"
 #include "Snapshot.hpp"
 #include "Space.hpp"
 #include "Vector.hpp"
@@ -27,51 +29,12 @@ protected:
     void SetUp() override {
         IdCache::getInstance().clean();
 
-        SnapshotManager& snapshotManager = SnapshotManager::getInstance();
-        snapshotManager.createTable();
-
-        SpaceManager& spaceManager = SpaceManager::getInstance();
-        spaceManager.createTable();
-        
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        vectorIndexManager.createTable();
-
-        VersionManager& versionManager = VersionManager::getInstance();
-        versionManager.createTable();
-
-        VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
-        metadataManager.createTable();
-
-        VectorManager& vectorManager = VectorManager::getInstance();
-        vectorManager.createTable();
-
-        RbacTokenManager& rbacTokenManager = RbacTokenManager::getInstance();
-        rbacTokenManager.createTable();
-
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM RbacToken;");
-
         // clean data
+        DatabaseManager::getInstance().reset();
         FaissIndexLRUCache::getInstance().clean();
     }
 
     void TearDown() override {
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Snapshot;");
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
-        db.exec("DELETE FROM RbacToken;");
     }
 };
 
@@ -227,6 +190,68 @@ TEST_F(VectorServiceManagerTest, UpsertStandaloneDenseAndSparseVectors) {
             } else {
                 FAIL() << "Vector data does not contain expected fields.";
             }
+        }
+    }
+}
+
+TEST_F(VectorServiceManagerTest, UpsertVectorsWithDoc) {
+    // Create a space
+    std::string inputJson = R"({
+        "name": "UpsertVectorsWithDoc",
+        "dimension": 4,
+        "metric": "L2",
+        "hnsw_config": {
+            "M": 16,
+            "ef_construct": 100
+        }
+    })";
+
+    SpaceServiceManager spaceServiceManager;
+    spaceServiceManager.createSpace(inputJson);
+
+    VectorServiceManager manager;
+
+    // Prepare JSON with Dense vector containing doc and doc_tokens
+    std::string vectorDataJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"category": "A"},
+                "doc": "This is a test document for vector 1",
+                "doc_tokens": ["test", "document", "vector", "1"]
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"category": "B"},
+                "doc": "Another test document for vector 2",
+                "doc_tokens": ["another", "test", "document", "vector", "2"]
+            }
+        ]
+    })";
+
+    // Perform upsert operation
+    manager.upsert("UpsertVectorsWithDoc", 0, vectorDataJson);
+
+    // Verify BM25 entries for the vectors
+    auto bm25Doc1 = BM25Manager::getInstance().getDocByVectorId(1);
+    ASSERT_EQ(bm25Doc1, "This is a test document for vector 1");
+
+    auto bm25Doc2 = BM25Manager::getInstance().getDocByVectorId(2);
+    ASSERT_EQ(bm25Doc2, "Another test document for vector 2");
+
+    // Fetch and verify vectors by versionId
+    json fetchedVectors = manager.getVectorsByVersionId("UpsertVectorsWithDoc", 0, 0, 10);
+    ASSERT_TRUE(fetchedVectors.contains("vectors"));
+    ASSERT_EQ(fetchedVectors["vectors"].size(), 2);
+
+    for (const auto& vectorJson : fetchedVectors["vectors"]) {
+        int unique_id = vectorJson["id"];
+        if (unique_id == 1) {
+            EXPECT_EQ(vectorJson["doc"], "This is a test document for vector 1");
+        } else if (unique_id == 2) {
+            EXPECT_EQ(vectorJson["doc"], "Another test document for vector 2");
         }
     }
 }

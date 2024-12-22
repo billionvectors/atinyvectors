@@ -40,8 +40,6 @@ public:
     VersionManager& operator=(const VersionManager&) = delete;
 
     static VersionManager& getInstance();
-    
-    void createTable();
 
     int addVersion(Version& version);
     std::vector<Version> getAllVersions();

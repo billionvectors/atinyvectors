@@ -9,21 +9,10 @@ using namespace atinyvectors;
 class VectorIndexManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Set up a clean test database
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        VersionManager& versionManager = VersionManager::getInstance();
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
+        DatabaseManager::getInstance().reset();
     }
 
     void TearDown() override {
-        // Cleanup after each test if necessary
-        VectorIndexManager& vectorIndexManager = VectorIndexManager::getInstance();
-        VersionManager& versionManager = VersionManager::getInstance();
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
     }
 };
 

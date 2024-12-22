@@ -35,8 +35,6 @@ public:
     SpaceManager& operator=(const SpaceManager&) = delete;
 
     static SpaceManager& getInstance();
-    
-    void createTable();
 
     int addSpace(Space& space);
     std::vector<Space> getAllSpaces();

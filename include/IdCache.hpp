@@ -32,7 +32,7 @@ public:
     std::pair<std::string, int> getSpaceNameAndVersionUniqueIdByVectorIndexId(int vectorIndexId);
 
     bool getSpaceExists(const std::string& spaceName);
-    int getSpaceId(const std::string& spaceName); // 새로 추가된 함수
+    int getSpaceId(const std::string& spaceName);
     RbacToken getRbacToken(const std::string& token);
 
     SparseDataPool& getSparseDataPool(int vectorIndexId);

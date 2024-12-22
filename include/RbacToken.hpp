@@ -75,8 +75,6 @@ public:
     RbacTokenManager& operator=(const RbacTokenManager&) = delete;
 
     static RbacTokenManager& getInstance();
-    
-    void createTable();
     static std::string generateJWTToken(int expireDays = 0);
 
     int addToken(RbacToken& token, int expireDays);

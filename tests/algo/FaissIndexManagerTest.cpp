@@ -22,21 +22,7 @@ using namespace nlohmann;
 class FaissIndexManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Initialize singleton managers
-        SpaceManager::getInstance();
-        VectorIndexManager::getInstance();
-        VersionManager::getInstance();
-        VectorMetadataManager::getInstance();
-        VectorManager::getInstance();
-
-        // Clear relevant tables to ensure a clean state
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
+        DatabaseManager::getInstance().reset();
 
         // Setup test parameters
         indexFileName = "test_faiss_index.bin";
@@ -63,15 +49,6 @@ protected:
     void TearDown() override {
         // Remove the index file after tests
         std::remove(indexFileName.c_str());
-
-        // Clear relevant tables
-        auto& db = DatabaseManager::getInstance().getDatabase();
-        db.exec("DELETE FROM Space;");
-        db.exec("DELETE FROM VectorIndex;");
-        db.exec("DELETE FROM Version;");
-        db.exec("DELETE FROM VectorMetadata;");
-        db.exec("DELETE FROM Vector;");
-        db.exec("DELETE FROM VectorValue;");
     }
 
     void createMockDatas() {
