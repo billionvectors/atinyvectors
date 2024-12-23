@@ -20,7 +20,7 @@
 !.git/packed-refs
 !.git/refs/heads/**
 *.log
-*DB/
+*.DB
 temp/
 target/
 build/
