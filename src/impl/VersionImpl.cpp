@@ -152,10 +152,12 @@ Version VersionManager::getVersionByUniqueId(int spaceId, int unique_id) {
     throw std::runtime_error("Version not found with the specified spaceId and unique_id.");
 }
 
-std::vector<Version> VersionManager::getVersionsBySpaceId(int spaceId) {
+std::vector<Version> VersionManager::getVersionsBySpaceId(int spaceId, int start, int limit) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, spaceId, unique_id, name, description, tag, created_time_utc, updated_time_utc, is_default FROM Version WHERE spaceId = ?");
+    SQLite::Statement query(db, "SELECT id, spaceId, unique_id, name, description, tag, created_time_utc, updated_time_utc, is_default FROM Version WHERE spaceId = ? ORDER BY id DESC LIMIT ? OFFSET ?");
     query.bind(1, spaceId);
+    query.bind(2, limit);
+    query.bind(3, start);
 
     return executeSelectQuery(query);
 }
@@ -170,6 +172,18 @@ Version VersionManager::getDefaultVersion(int spaceId) {
     }
 
     throw std::runtime_error("Default version not found for the specified space.");
+}
+
+int VersionManager::getTotalCountBySpaceId(int spaceId) {
+    auto& db = DatabaseManager::getInstance().getDatabase();
+    SQLite::Statement query(db, "SELECT COUNT(*) FROM Version WHERE spaceId = ?");
+    query.bind(1, spaceId);
+
+    if (query.executeStep()) {
+        return query.getColumn(0).getInt();
+    }
+
+    throw std::runtime_error("Failed to get total count for the specified spaceId.");
 }
 
 void VersionManager::updateVersion(const Version& version) {

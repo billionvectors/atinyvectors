@@ -185,6 +185,9 @@ nlohmann::json SnapshotServiceManager::listSnapshots() {
                 
                 if (fileName.rfind("snapshot-", 0) == 0 && fileName.size() > 18 && fileName.substr(fileName.size() - 4) == ".zip") {
                     snapshotJson["file_name"] = fileName;
+                    std::string timestamp = fileName.substr(9, 12);
+                    snapshotJson["date"] = timestamp;
+
                     snapshots.push_back(snapshotJson);
                 }
             }

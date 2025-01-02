@@ -75,6 +75,7 @@ CREATE TABLE Version (
 );
 
 CREATE INDEX IF NOT EXISTS idx_version_unique_id ON Version(unique_id);
+CREATE INDEX IF NOT EXISTS idx_version_space_id ON Version(spaceId);
 
 CREATE TABLE Vector (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

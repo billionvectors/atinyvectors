@@ -260,16 +260,16 @@ TEST_F(VersionManagerTest, DeleteVersionAndReassignDefault) {
     int versionId2 = versionManager.addVersion(version2);
 
     // Verify initial default
-    auto versions = versionManager.getVersionsBySpaceId(spaceId);
+    auto versions = versionManager.getVersionsBySpaceId(spaceId, 0, std::numeric_limits<int>::max());
     ASSERT_EQ(versions.size(), 2);
-    EXPECT_FALSE(versions[0].is_default);
-    EXPECT_TRUE(versions[1].is_default);
+    EXPECT_TRUE(versions[0].is_default);
+    EXPECT_FALSE(versions[1].is_default);
 
     // Delete the default version (version2)
     versionManager.deleteVersion(versionId2);
 
     // Retrieve remaining versions
-    versions = versionManager.getVersionsBySpaceId(spaceId);
+    versions = versionManager.getVersionsBySpaceId(spaceId, 0, std::numeric_limits<int>::max());
     ASSERT_EQ(versions.size(), 1);
     EXPECT_EQ(versions[0].id, versionId1);
     EXPECT_TRUE(versions[0].is_default); // version1 should now be default
@@ -284,4 +284,48 @@ TEST_F(VersionManagerTest, HandleNonExistentVersion) {
 
     // Trying to get a version by unique_id that does not exist
     EXPECT_THROW(manager.getVersionByUniqueId(1, 999), std::runtime_error);
+}
+
+// Test for pagination and total count
+TEST_F(VersionManagerTest, PaginationAndTotalCount) {
+    VersionManager& versionManager = VersionManager::getInstance();
+    SpaceManager& spaceManager = SpaceManager::getInstance();
+
+    // Add a new space and capture the returned spaceId
+    Space space(0, "PaginationAndTotalCount", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
+    int spaceId = spaceManager.addSpace(space); // Capture the returned id
+
+    // Add multiple versions
+    for (int i = 1; i <= 15; ++i) {
+        Version version;
+        version.spaceId = spaceId;
+        version.name = "Version " + std::to_string(i);
+        version.description = "Description " + std::to_string(i);
+        version.tag = "v" + std::to_string(i);
+        version.is_default = (i == 1); // Only the first version is default
+        versionManager.addVersion(version);
+    }
+
+    // Test total count
+    int totalCount = versionManager.getTotalCountBySpaceId(spaceId);
+    EXPECT_EQ(totalCount, 15);
+
+    // Test pagination
+    auto versionsPage1 = versionManager.getVersionsBySpaceId(spaceId, 0, 5);
+    EXPECT_EQ(versionsPage1.size(), 5);
+    EXPECT_EQ(versionsPage1[0].name, "Version 15");
+    EXPECT_EQ(versionsPage1[4].name, "Version 11");
+
+    auto versionsPage2 = versionManager.getVersionsBySpaceId(spaceId, 5, 5);
+    EXPECT_EQ(versionsPage2.size(), 5);
+    EXPECT_EQ(versionsPage2[0].name, "Version 10");
+    EXPECT_EQ(versionsPage2[4].name, "Version 6");
+
+    auto versionsPage3 = versionManager.getVersionsBySpaceId(spaceId, 10, 5);
+    EXPECT_EQ(versionsPage3.size(), 5);
+    EXPECT_EQ(versionsPage3[0].name, "Version 5");
+    EXPECT_EQ(versionsPage3[4].name, "Version 1");
+
+    auto versionsPage4 = versionManager.getVersionsBySpaceId(spaceId, 15, 5);
+    EXPECT_EQ(versionsPage4.size(), 0); // No more versions
 }

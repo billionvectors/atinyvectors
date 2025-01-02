@@ -35,7 +35,8 @@ void atv_version_service_create_version(VersionServiceManager* manager, const ch
 char* atv_version_service_get_by_version_id(VersionServiceManager* manager, const char* spaceName, int versionId);
 char* atv_version_service_get_by_version_name(VersionServiceManager* manager, const char* spaceName, const char* versionName);
 char* atv_version_service_get_default_version(VersionServiceManager* manager, const char* spaceName);
-char* atv_version_service_get_lists(VersionServiceManager* manager, const char* spaceName);
+char* atv_version_service_get_lists(VersionServiceManager* manager, const char* spaceName, int start, int limit);
+void atv_version_service_delete_by_version_id(VersionServiceManager* manager, const char* spaceName, int versionId);
 
 // C API for VectorServiceManager
 VectorServiceManager* atv_vector_service_manager_new();

@@ -72,10 +72,10 @@ char* atv_version_service_get_default_version(VersionServiceManager* manager, co
     }
 }
 
-char* atv_version_service_get_lists(VersionServiceManager* manager, const char* spaceName) {
+char* atv_version_service_get_lists(VersionServiceManager* manager, const char* spaceName, int start, int limit) {
     try {
         auto* cppManager = reinterpret_cast<atinyvectors::service::VersionServiceManager*>(manager);
-        nlohmann::json result = cppManager->getLists(spaceName);
+        nlohmann::json result = cppManager->getLists(spaceName, start, limit);
 
         std::string jsonString = result.dump();
         char* resultCStr = (char*)malloc(jsonString.size() + 1);
@@ -85,5 +85,14 @@ char* atv_version_service_get_lists(VersionServiceManager* manager, const char* 
         return atv_create_error_json(ATVErrorCode::JSON_PARSE_ERROR, e.what());
     } catch (const std::exception& e) {
         return atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());
+    }
+}
+
+void atv_version_service_delete_by_version_id(VersionServiceManager* manager, const char* spaceName, int versionId) {
+    try {
+        auto* cppManager = reinterpret_cast<atinyvectors::service::VersionServiceManager*>(manager);
+        cppManager->deleteByVersionId(spaceName, versionId);
+    } catch (const std::exception& e) {
+        atv_create_error_json(ATVErrorCode::UNKNOWN_ERROR, e.what());
     }
 }

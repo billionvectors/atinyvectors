@@ -89,7 +89,8 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
                     }
                 }
             }
-        }
+        },
+        "description": "This is a test space"
     })";
 
     SpaceServiceManager manager;
@@ -97,8 +98,10 @@ TEST_F(SpaceServiceManagerTest, CreateSpaceWithNormalizedJson) {
 
     auto spaces = SpaceManager::getInstance().getAllSpaces();
     ASSERT_EQ(spaces.size(), 1);
+    ASSERT_EQ("spacename", spaces[0].name);
+    ASSERT_EQ("This is a test space", spaces[0].description);
 
-    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaces[0].id);
+    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaces[0].id, 0, std::numeric_limits<int>::max());
     ASSERT_EQ(versions.size(), 1);
 
     auto vectorIndexes = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versions[0].id);
@@ -364,7 +367,7 @@ TEST_F(SpaceServiceManagerTest, UpdateSpaceTest) {
 
     json updatedJson = manager.getBySpaceId(spaceId);
     
-    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaceId);
+    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaceId, 0, std::numeric_limits<int>::max());
     ASSERT_EQ(versions.size(), 1);
     int versionId = versions[0].id;
 
@@ -433,4 +436,51 @@ TEST_F(SpaceServiceManagerTest, UpdateSpaceWithAssignedVectorsShouldThrow) {
     EXPECT_THROW({
         manager.updateSpace("UpdateSpaceTest", updateJsonStr);
     }, std::runtime_error) << "updateSpace did not throw an exception when vectors are assigned.";
+}
+
+TEST_F(SpaceServiceManagerTest, CreateSpaceWithInvalidNameShouldThrow) {
+    SpaceServiceManager manager;
+
+    // Test with empty name
+    std::string inputJson1 = R"({
+        "name": "",
+        "dimension": 128,
+        "metric": "cosine"
+    })";
+    EXPECT_THROW(manager.createSpace(inputJson1), std::invalid_argument);
+
+    // Test with name containing special characters
+    std::string inputJson2 = R"({
+        "name": "invalid name!",
+        "dimension": 128,
+        "metric": "cosine"
+    })";
+    EXPECT_THROW(manager.createSpace(inputJson2), std::invalid_argument);
+
+    // Test with name containing spaces
+    std::string inputJson3 = R"({
+        "name": "invalid name",
+        "dimension": 128,
+        "metric": "cosine"
+    })";
+    EXPECT_THROW(manager.createSpace(inputJson3), std::invalid_argument);
+
+    // Test with name containing non-ASCII characters
+    std::string inputJson4 = R"({
+        "name": "이름",
+        "dimension": 128,
+        "metric": "cosine"
+    })";
+    EXPECT_THROW(manager.createSpace(inputJson4), std::invalid_argument);
+
+    // Test with name containing leading and trailing spaces
+    std::string inputJson5 = R"({
+        "name": "    valid-_-name    ",
+        "dimension": 128,
+        "metric": "cosine"
+    })";
+    EXPECT_NO_THROW(manager.createSpace(inputJson5));
+    auto spaces = SpaceManager::getInstance().getAllSpaces();
+    ASSERT_EQ(spaces.size(), 1);
+    ASSERT_EQ("valid-_-name", spaces[0].name);
 }

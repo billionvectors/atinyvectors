@@ -1,4 +1,5 @@
 #include "service/VersionService.hpp"
+#include <limits>
 
 #include <string>
 #include <SQLiteCpp/SQLiteCpp.h>
@@ -97,7 +98,7 @@ nlohmann::json VersionServiceManager::getByVersionName(const std::string& spaceN
             throw std::runtime_error("Space not found.");
         }
 
-        auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
+        auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id, 0, std::numeric_limits<int>::max());
         for (const auto& version : versions) {
             if (version.name == versionName) {
                 return fetchVersionDetails(version);
@@ -112,7 +113,7 @@ nlohmann::json VersionServiceManager::getByVersionName(const std::string& spaceN
     }
 }
 
-nlohmann::json VersionServiceManager::getLists(const std::string& spaceName) {
+nlohmann::json VersionServiceManager::getLists(const std::string& spaceName, int start, int limit) {
     try {
         auto space = SpaceManager::getInstance().getSpaceByName(spaceName);
         if (space.id <= 0) {
@@ -123,7 +124,8 @@ nlohmann::json VersionServiceManager::getLists(const std::string& spaceName) {
         nlohmann::json result;
         nlohmann::json values = nlohmann::json::array();
 
-        auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
+        auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id, start, limit);
+        int total_count = VersionManager::getInstance().getTotalCountBySpaceId(space.id);
 
         for (const auto& version : versions) {
             nlohmann::json versionJson;
@@ -138,6 +140,7 @@ nlohmann::json VersionServiceManager::getLists(const std::string& spaceName) {
         }
 
         result["values"] = values;
+        result["total_count"] = total_count;
 
         return result;
     } catch (const std::exception& e) {
@@ -159,6 +162,17 @@ nlohmann::json VersionServiceManager::getDefaultVersion(const std::string& space
 
     } catch (const std::exception& e) {
         spdlog::error("Exception occurred in getDefaultVersion for spaceName: {}. Error: {}", spaceName, e.what());
+        throw;
+    }
+}
+
+void VersionServiceManager::deleteByVersionId(const std::string& spaceName, int versionUniqueId) {
+    try {
+        int versionId = IdCache::getInstance().getVersionId(spaceName, versionUniqueId);
+        VersionManager::getInstance().deleteVersion(versionId);
+        spdlog::info("Deleted version with unique_id: {} in space: {}", versionUniqueId, spaceName);
+    } catch (const std::exception& e) {
+        spdlog::error("Exception occurred in deleteByVersionId for spaceName: {}, versionUniqueId: {}. Error: {}", spaceName, versionUniqueId, e.what());
         throw;
     }
 }

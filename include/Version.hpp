@@ -45,13 +45,13 @@ public:
     std::vector<Version> getAllVersions();
     Version getVersionById(int id);
     Version getVersionByUniqueId(int spaceId, int unique_id);
-    std::vector<Version> getVersionsBySpaceId(int spaceId);
+    std::vector<Version> getVersionsBySpaceId(int spaceId, int start, int limit);
     Version getDefaultVersion(int spaceId);
     void updateVersion(const Version& version);
     void deleteVersion(int id);
+    int getTotalCountBySpaceId(int spaceId);
 };
 
 };
-
 
 #endif

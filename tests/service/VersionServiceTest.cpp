@@ -57,7 +57,7 @@ TEST_F(VersionServiceManagerTest, CreateVersion) {
     ASSERT_FALSE(spaces.empty());
 
     int spaceId = spaces[0].id;
-    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaceId);
+    auto versions = VersionManager::getInstance().getVersionsBySpaceId(spaceId, 0, std::numeric_limits<int>::max());
     ASSERT_EQ(versions.size(), 1);
     EXPECT_EQ(versions[0].name, "Version 1.0");
     EXPECT_EQ(versions[0].description, "Initial version");
@@ -175,7 +175,7 @@ TEST_F(VersionServiceManagerTest, GetLists) {
     manager.createVersion("VersionServiceManagerTest_GetLists", inputJson2);
 
     // Retrieve the list of versions by space name
-    auto versionListJson = manager.getLists("VersionServiceManagerTest_GetLists");
+    auto versionListJson = manager.getLists("VersionServiceManagerTest_GetLists", 0, std::numeric_limits<int>::max());
 
     // Validate the JSON output
     ASSERT_TRUE(versionListJson.contains("values"));
@@ -247,11 +247,39 @@ TEST_F(VersionServiceManagerTest, UniqueIdIncrement) {
     manager.createVersion("VersionServiceManagerTest_UniqueIdIncrement", inputJson3);
 
     // Retrieve all versions
-    auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
+    auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id, 0, std::numeric_limits<int>::max());
     ASSERT_EQ(versions.size(), 3);
 
     // Verify unique_id increments correctly
-    EXPECT_EQ(versions[0].unique_id, 1);
+    EXPECT_EQ(versions[0].unique_id, 3);
     EXPECT_EQ(versions[1].unique_id, 2);
-    EXPECT_EQ(versions[2].unique_id, 3);
+    EXPECT_EQ(versions[2].unique_id, 1);
+}
+
+// Test for deleting a version by its unique_id and space name
+TEST_F(VersionServiceManagerTest, DeleteByVersionId) {
+    SpaceManager& spaceManager = SpaceManager::getInstance();
+    VersionServiceManager manager;
+
+    // Create a space and associate a version with it
+    Space space(0, "Test Space", "A space for testing", getCurrentTimeUTC(), getCurrentTimeUTC());
+    spaceManager.addSpace(space);
+
+    std::string inputJson = R"({
+        "name": "Version 1.0",
+        "description": "Initial version",
+        "tag": "v1.0"
+    })";
+
+    manager.createVersion("Test Space", inputJson);
+
+    // Verify the version was created
+    auto versionJson = manager.getByVersionId("Test Space", 1);
+    ASSERT_TRUE(versionJson.contains("id"));
+
+    // Delete the version
+    manager.deleteByVersionId("Test Space", 1);
+
+    // Verify the version was deleted
+    EXPECT_THROW(manager.getByVersionId("Test Space", 1), std::runtime_error);
 }

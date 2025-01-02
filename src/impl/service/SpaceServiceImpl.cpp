@@ -17,6 +17,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <regex>
 
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
@@ -189,7 +190,7 @@ nlohmann::json fetchSpaceDetails(const Space& space) {
     result["created_time_utc"] = space.created_time_utc;
     result["updated_time_utc"] = space.updated_time_utc;
 
-    auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id);
+    auto versions = VersionManager::getInstance().getVersionsBySpaceId(space.id, 0, std::numeric_limits<int>::max());
     if (versions.empty()) {
         spdlog::error("No versions found for spaceId: {}", space.id);
         throw std::runtime_error("No default version found for the specified space.");
@@ -375,18 +376,30 @@ void updateAdditionalIndexes(const json& parsedJson, int versionId, int spaceId)
 void SpaceServiceManager::createSpace(const std::string& jsonStr) {
     json parsedJson = json::parse(jsonStr);
 
-    std::string spaceName = "Default Space";
+    std::string spaceName = "";
     std::string spaceDescription = "Automatically created space";
 
     if (parsedJson.contains("name")) {
         spaceName = parsedJson["name"];
+        spaceName.erase(spaceName.find_last_not_of(" \n\r\t") + 1);
+        spaceName.erase(0, spaceName.find_first_not_of(" \n\r\t"));
+    } else {
+        throw std::invalid_argument("Space name is required.");
+    }
+
+    if (!std::regex_match(spaceName, std::regex("^[a-zA-Z0-9_-]+$"))) {
+        throw std::invalid_argument("Invalid 'name' format, only alphanumeric characters, '_', and '-' are allowed");
+    }
+
+    if (parsedJson.contains("description")) {
+        spaceDescription = parsedJson["description"];
     }
 
     // validation
     try {
         int versionId = IdCache::getInstance().getDefaultVersionId(spaceName);
         if (versionId >= 0) {
-            spdlog::info("spaceName: {} alread exists", spaceName);
+            spdlog::info("spaceName: {} already exists", spaceName);
             return;
         }
     } catch (const std::exception& e) {

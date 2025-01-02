@@ -17,8 +17,9 @@ public:
     void createVersion(const std::string& spaceName, const std::string& jsonStr);
     nlohmann::json getByVersionId(const std::string& spaceName, int versionUniqueId);
     nlohmann::json getByVersionName(const std::string& spaceName, const std::string& versionName);
-    nlohmann::json getLists(const std::string& spaceName);
+    nlohmann::json getLists(const std::string& spaceName, int start, int limit);
     nlohmann::json getDefaultVersion(const std::string& spaceName);
+    void deleteByVersionId(const std::string& spaceName, int versionUniqueId);
 };
 
 }

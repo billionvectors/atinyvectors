@@ -377,6 +377,10 @@ json VectorServiceManager::getVectorsByVersionId(const std::string& spaceName, i
     }
 
     result["vectors"] = vectorsJson;
+
+    int totalCount = VectorManager::getInstance().countByVersionId(versionId);
+    result["total_count"] = totalCount;
+
     return result;
 }
 
