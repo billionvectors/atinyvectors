@@ -18,6 +18,7 @@ std::unique_ptr<VectorManager> VectorManager::instance;
 std::mutex VectorManager::instanceMutex;
 
 VectorManager::VectorManager() {
+    _cachedVectorIndexIds.clear();
 }
 
 VectorManager& VectorManager::getInstance() {
@@ -28,7 +29,7 @@ VectorManager& VectorManager::getInstance() {
     return *instance;
 }
 
-int VectorManager::addVector(Vector& vector) {
+int VectorManager::addVector(Vector& vector, bool autoflush) {
     auto& db = DatabaseManager::getInstance().getDatabase();
     spdlog::debug("Starting transaction for adding/updating vector with UniqueID: {}, VersionID: {}", vector.unique_id, vector.versionId);
     SQLite::Transaction transaction(db);
@@ -89,9 +90,14 @@ int VectorManager::addVector(Vector& vector) {
 
         spdlog::debug("Processing VectorValue entries for vector ID: {}", vector.id);
 
-        for (auto& value : vector.values) {            
-            auto hnswManager = FaissIndexLRUCache::getInstance().get(value.vectorIndexId);
-            hnswManager->restoreVectorsToIndex();
+        for (auto& value : vector.values) {
+            std::shared_ptr<FaissIndexManager> hnswManager = nullptr;
+            if (autoflush) {
+                hnswManager = FaissIndexLRUCache::getInstance().get(value.vectorIndexId);
+                hnswManager->restoreVectorsToIndex();
+            } else {
+                _cachedVectorIndexIds.push_back(value.vectorIndexId);
+            }
 
             spdlog::debug("Inserting VectorValue for vector ID: {}, vectorIndexId: {}", vector.id, value.vectorIndexId);
 
@@ -111,7 +117,9 @@ int VectorManager::addVector(Vector& vector) {
                 spdlog::debug("Processing HNSW index update for vector ID: {}", vector.id);
 
                 if (value.type == VectorValueType::Dense) {
-                    hnswManager->addVectorData(value.denseData, vector.unique_id);
+                    if (autoflush) {
+                        hnswManager->addVectorData(value.denseData, vector.unique_id);
+                    }
                 } else if (value.type == VectorValueType::Sparse) {
                     
                     spdlog::debug("Original SparseData:");
@@ -119,7 +127,9 @@ int VectorManager::addVector(Vector& vector) {
                         spdlog::debug("Index: {}, Value: {}", pair.first, pair.second);
                     }
                     
-                    hnswManager->addVectorData(value.sparseData, vector.unique_id);
+                    if (autoflush) {
+                        hnswManager->addVectorData(value.sparseData, vector.unique_id);
+                    }
                 } 
                 else if (value.type == VectorValueType::MultiVector) {
                     spdlog::debug("Multivector is currently not supported");
@@ -142,6 +152,14 @@ int VectorManager::addVector(Vector& vector) {
     }
 
     return vector.id;
+}
+
+void VectorManager::flush() {
+    for (const auto& vectorIndexId : _cachedVectorIndexIds) {
+        auto hnswManager = FaissIndexLRUCache::getInstance().get(vectorIndexId);
+        hnswManager->restoreVectorsToIndex();
+    }
+    _cachedVectorIndexIds.clear();
 }
 
 std::vector<Vector> VectorManager::getAllVectors() {

@@ -21,6 +21,8 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/billionvectors/faiss_atinyvectors.git
   GIT_TAG v1.9.0-atv
 )
+
+# todo: OPT_LEVEL을 build.sh, build_run_test.sh, dockerbuild.sh 에서 구성할 수 있게 변경경
 set(FAISS_OPT_LEVEL "generic" CACHE STRING "Optimization level for Faiss")
 set(FAISS_ENABLE_GPU OFF CACHE BOOL "Enable support for GPU indexes")
 set(FAISS_ENABLE_RAFT OFF CACHE BOOL "Enable RAFT for GPU indexes")

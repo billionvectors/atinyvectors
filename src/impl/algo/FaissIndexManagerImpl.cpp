@@ -160,7 +160,11 @@ void FaissIndexManager::normalizeSparseVector(SparseData* sparseVector) {
     }
 }
 
-void FaissIndexManager::restoreVectorsToIndex() {
+void FaissIndexManager::restoreVectorsToIndex(bool skipIfIndexLoaded) {
+    if (skipIfIndexLoaded && index != nullptr && index->ntotal > 0) {
+        return;
+    }
+
     spdlog::debug("Starting restoreVectorsToIndex for vectorIndexId: {}", vectorIndexId);
 
     // Initialize index settings

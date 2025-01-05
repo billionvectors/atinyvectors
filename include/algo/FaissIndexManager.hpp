@@ -30,7 +30,7 @@ public:
     void addVectorData(SparseData* sparseData, int vectorId);
     std::vector<std::pair<float, int>> search(SparseData* sparseQueryVector, size_t k);
 
-    void restoreVectorsToIndex();
+    void restoreVectorsToIndex(bool skipIfIndexLoaded = true);
     void saveIndex();
     void loadIndex();
     

@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y \
 
 # Set default build type to Release if not specified
 ARG BUILD_TYPE=Release
+ARG OPT_LEVEL=generic
 
 # Create a working directory
 WORKDIR /app
@@ -44,5 +45,5 @@ COPY . .
 
 # Build project using CMake
 RUN mkdir -p build && cd build \
-    && cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=${BUILD_TYPE} .. \
+    && cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DFAISS_OPT_LEVEL=${OPT_LEVEL} .. \
     && make -j$(nproc)

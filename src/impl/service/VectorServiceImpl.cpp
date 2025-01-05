@@ -34,6 +34,9 @@ void VectorServiceManager::upsert(const std::string& spaceName, int versionUniqu
     int versionId = idCache.getVersionId(spaceName, versionUniqueId);
     int vectorIndexId = idCache.getVectorIndexId(spaceName, versionUniqueId);
 
+    VectorManager& vectorManager = VectorManager::getInstance();
+    vectorManager.flush();
+
     // Process vectors in JSON
     if (parsedJson.contains("vectors") && parsedJson["vectors"].is_array()) {
         const auto& vectorsJson = parsedJson["vectors"];
@@ -90,7 +93,7 @@ void VectorServiceManager::upsert(const std::string& spaceName, int versionUniqu
                 }
             }
 
-            int addedVectorId = VectorManager::getInstance().addVector(vector);
+            int addedVectorId = vectorManager.addVector(vector);
 
             // Add metadata if present
             if (vectorJson.contains("metadata")) {
@@ -211,6 +214,8 @@ void VectorServiceManager::upsert(const std::string& spaceName, int versionUniqu
             VectorManager::getInstance().addVector(vector);
         }
     }
+
+    vectorManager.flush();
 }
 
 void VectorServiceManager::processSimpleVectors(const json& vectorsJson, int versionId, int defaultIndexId) {

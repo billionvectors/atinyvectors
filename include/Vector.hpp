@@ -70,6 +70,7 @@ class VectorManager {
 private:
     static std::unique_ptr<VectorManager> instance;
     static std::mutex instanceMutex;
+    std::vector<int> _cachedVectorIndexIds;
 
     VectorManager();
 
@@ -79,7 +80,7 @@ public:
 
     static VectorManager& getInstance();
 
-    int addVector(Vector& vector);
+    int addVector(Vector& vector, bool autoflush = true);
     std::vector<Vector> getAllVectors();
     std::vector<Vector> getVectorsByVersionId(int versionId, int start, int limit);
 
@@ -90,6 +91,8 @@ public:
 
     void updateVector(const Vector& vector);
     void deleteVector(unsigned long long id);
+
+    void flush();
 };
 
 } // namespace atinyvectors
