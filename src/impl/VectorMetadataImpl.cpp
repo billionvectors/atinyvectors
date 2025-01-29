@@ -11,18 +11,21 @@ using namespace atinyvectors::filter;
 namespace atinyvectors {
 
 namespace {
+    
 void bindVectorMetadataParameters(SQLite::Statement& query, const VectorMetadata& metadata) {
     query.bind(1, metadata.vectorId);
     query.bind(2, metadata.key);
     query.bind(3, metadata.value);
+    query.bind(4, metadata.versionId);
 }
 
 VectorMetadata createVectorMetadataFromQuery(SQLite::Statement& query) {
     return VectorMetadata(
-        query.getColumn(0).getInt64(),            // id
-        query.getColumn(1).getInt64(),         // vectorId
-        query.getColumn(2).getString(),         // key
-        query.getColumn(3).getString()          // value
+        query.getColumn(0).getInt64(),  // id
+        query.getColumn(4).getInt64(),   // versionId
+        query.getColumn(1).getInt64(),  // vectorId
+        query.getColumn(2).getString(), // key
+        query.getColumn(3).getString() // value
     );
 }
 
@@ -54,7 +57,7 @@ long VectorMetadataManager::addVectorMetadata(VectorMetadata& metadata) {
     auto& db = DatabaseManager::getInstance().getDatabase();
     
     SQLite::Transaction transaction(db);
-    SQLite::Statement insertQuery(db, "INSERT INTO VectorMetadata (vectorId, key, value) VALUES (?, ?, ?)");
+    SQLite::Statement insertQuery(db, "INSERT INTO VectorMetadata (vectorId, key, value, versionId) VALUES (?, ?, ?, ?)");
     bindVectorMetadataParameters(insertQuery, metadata);
     insertQuery.exec();
 
@@ -68,13 +71,13 @@ long VectorMetadataManager::addVectorMetadata(VectorMetadata& metadata) {
 
 std::vector<VectorMetadata> VectorMetadataManager::getAllVectorMetadata() {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, vectorId, key, value FROM VectorMetadata");
+    SQLite::Statement query(db, "SELECT id, vectorId, key, value, versionId FROM VectorMetadata");
     return executeSelectQuery(query);
 }
 
 VectorMetadata VectorMetadataManager::getVectorMetadataById(long id) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, vectorId, key, value FROM VectorMetadata WHERE id = ?");
+    SQLite::Statement query(db, "SELECT id, vectorId, key, value, versionId FROM VectorMetadata WHERE id = ?");
     query.bind(1, id);
 
     if (query.executeStep()) {
@@ -86,7 +89,7 @@ VectorMetadata VectorMetadataManager::getVectorMetadataById(long id) {
 
 std::vector<VectorMetadata> VectorMetadataManager::getVectorMetadataByVectorId(long vectorId) {
     auto& db = DatabaseManager::getInstance().getDatabase();
-    SQLite::Statement query(db, "SELECT id, vectorId, key, value FROM VectorMetadata WHERE vectorId = ?");
+    SQLite::Statement query(db, "SELECT id, vectorId, key, value, versionId FROM VectorMetadata WHERE vectorId = ?");
     query.bind(1, vectorId);
 
     return executeSelectQuery(query);
@@ -97,9 +100,9 @@ void VectorMetadataManager::updateVectorMetadata(const VectorMetadata& metadata)
     
     SQLite::Transaction transaction(db);
     
-    SQLite::Statement query(db, "UPDATE VectorMetadata SET vectorId = ?, key = ?, value = ? WHERE id = ?");
+    SQLite::Statement query(db, "UPDATE VectorMetadata SET vectorId = ?, key = ?, value = ?, versionId = ? WHERE id = ?");
     bindVectorMetadataParameters(query, metadata);
-    query.bind(4, metadata.id);
+    query.bind(5, metadata.id);
     query.exec();
     
     transaction.commit();
@@ -185,6 +188,36 @@ std::vector<std::pair<float, int>> VectorMetadataManager::filterVectors(
     }
 
     return filteredVectors;
+}
+
+VectorMetadataResult VectorMetadataManager::queryVectors(
+    long versionId, const std::string& filter, int start, int limit) {
+    auto& db = DatabaseManager::getInstance().getDatabase();
+    VectorMetadataResult result;
+    std::string sqlFilter = FilterManager::getInstance().toSQL(filter);
+
+    // Query to get the total count of vectors matching the filter and versionId
+    std::string countQueryStr = "SELECT COUNT(*) FROM VectorMetadata WHERE versionId = ? AND " + sqlFilter;
+    SQLite::Statement countQuery(db, countQueryStr);
+    countQuery.bind(1, versionId);
+    if (countQuery.executeStep()) {
+        result.totalCount = countQuery.getColumn(0).getInt();
+    }
+
+    // Query to get the filtered vectors with pagination and versionId
+    std::string queryStr = "SELECT vectorId FROM VectorMetadata WHERE versionId = ? AND " + sqlFilter + 
+                           " LIMIT ? OFFSET ?";
+    SQLite::Statement query(db, queryStr);
+    query.bind(1, versionId);
+    query.bind(2, limit);
+    query.bind(3, start);
+
+    while (query.executeStep()) {
+        int vectorId = query.getColumn(0).getInt();
+        result.vectorUniqueIds.emplace_back(vectorId);
+    }
+
+    return result;
 }
 
 } // namespace atinyvectors

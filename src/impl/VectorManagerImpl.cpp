@@ -376,3 +376,58 @@ int VectorManager::countByVersionId(int versionId) {
     spdlog::error("Failed to count vectors for versionId: {}", versionId);
     throw std::runtime_error("Failed to count vectors for the specified versionId.");
 }
+
+std::vector<Vector> VectorManager::getVectorsByVectorIds(const std::vector<int>& vectorIds) {
+    auto& db = DatabaseManager::getInstance().getDatabase();
+    std::vector<Vector> vectors;
+
+    if (vectorIds.empty()) {
+        return vectors;
+    }
+
+    std::stringstream ss;
+    ss << "SELECT id, versionId, unique_id, type, deleted FROM Vector WHERE id IN (";
+    for (size_t i = 0; i < vectorIds.size(); ++i) {
+        ss << "?";
+        if (i < vectorIds.size() - 1) {
+            ss << ",";
+        }
+    }
+    ss << ")";
+
+    SQLite::Statement query(db, ss.str());
+    for (size_t i = 0; i < vectorIds.size(); ++i) {
+        query.bind(static_cast<int>(i + 1), vectorIds[i]);
+    }
+
+    while (query.executeStep()) {
+        Vector vector;
+        vector.id = query.getColumn(0).getInt64();
+        vector.versionId = query.getColumn(1).getInt();
+        vector.unique_id = query.getColumn(2).getInt();
+        vector.type = static_cast<VectorValueType>(query.getColumn(3).getInt());
+        vector.deleted = query.getColumn(4).getInt() != 0;
+
+        SQLite::Statement valueQuery(db, "SELECT id, vectorId, vectorIndexId, type, data FROM VectorValue WHERE vectorId = ?");
+        valueQuery.bind(1, vector.id);
+
+        while (valueQuery.executeStep()) {
+            VectorValue value;
+            value.id = valueQuery.getColumn(0).getInt();
+            value.vectorId = valueQuery.getColumn(1).getInt64();
+            value.vectorIndexId = valueQuery.getColumn(2).getInt();
+            value.type = static_cast<VectorValueType>(valueQuery.getColumn(3).getInt());
+
+            std::vector<uint8_t> blobData;
+            blobData.assign(static_cast<const uint8_t*>(valueQuery.getColumn(4).getBlob()),
+                            static_cast<const uint8_t*>(valueQuery.getColumn(4).getBlob()) + valueQuery.getColumn(4).getBytes());
+
+            value.deserialize(blobData);
+            vector.values.push_back(value);
+        }
+
+        vectors.push_back(vector);
+    }
+
+    return vectors;
+}

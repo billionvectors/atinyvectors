@@ -254,3 +254,25 @@ TEST_F(VectorManagerTest, GetVectorsByVersionIdWithPagination) {
     auto thirdBatch = manager.getVectorsByVersionId(versionId, 10, 5);
     EXPECT_TRUE(thirdBatch.empty());
 }
+
+// Test for getting vectors by vector IDs
+TEST_F(VectorManagerTest, GetVectorsByVectorIds) {
+    VectorManager& manager = VectorManager::getInstance();
+
+    // Add multiple vectors
+    std::vector<int> addedVectorIds;
+    for (int i = 0; i < 5; ++i) {
+        Vector vector(0, versionId, 0, VectorValueType::Dense, {}, false); // Provide 0 as unique_id
+        int vectorId = manager.addVector(vector);
+        addedVectorIds.push_back(vectorId);
+    }
+
+    // Retrieve vectors by their IDs
+    auto retrievedVectors = manager.getVectorsByVectorIds(addedVectorIds);
+    ASSERT_EQ(retrievedVectors.size(), addedVectorIds.size());
+
+    for (size_t i = 0; i < addedVectorIds.size(); ++i) {
+        EXPECT_EQ(retrievedVectors[i].id, addedVectorIds[i]);
+        EXPECT_EQ(retrievedVectors[i].versionId, versionId);
+    }
+}

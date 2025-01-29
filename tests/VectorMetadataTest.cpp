@@ -65,7 +65,7 @@ protected:
 TEST_F(VectorMetadataManagerTest, AddVectorMetadata) {
     VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
 
-    VectorMetadata metadata(0, 1001, "Key1", "Value1");
+    VectorMetadata metadata(0, versionId, 1001, "Key1", "Value1");
     int metadataId = metadataManager.addVectorMetadata(metadata);
 
     EXPECT_EQ(metadata.id, metadataId);
@@ -81,7 +81,7 @@ TEST_F(VectorMetadataManagerTest, AddVectorMetadata) {
 TEST_F(VectorMetadataManagerTest, GetVectorMetadataById) {
     VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
 
-    VectorMetadata metadata(0, 1001, "Key1", "Value1");
+    VectorMetadata metadata(0, versionId, 1001, "Key1", "Value1");
     metadataManager.addVectorMetadata(metadata);
 
     auto metadataList = metadataManager.getAllVectorMetadata();
@@ -100,8 +100,8 @@ TEST_F(VectorMetadataManagerTest, GetVectorMetadataByVectorId) {
     VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
 
     // Adding multiple metadata to the same vector
-    VectorMetadata metadata1(0, 1001, "Key1", "Value1");
-    VectorMetadata metadata2(0, 1001, "Key2", "Value2");
+    VectorMetadata metadata1(0, versionId, 1001, "Key1", "Value1");
+    VectorMetadata metadata2(0, versionId, 1001, "Key2", "Value2");
     metadataManager.addVectorMetadata(metadata1);
     metadataManager.addVectorMetadata(metadata2);
 
@@ -115,7 +115,7 @@ TEST_F(VectorMetadataManagerTest, GetVectorMetadataByVectorId) {
 TEST_F(VectorMetadataManagerTest, UpdateVectorMetadata) {
     VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
 
-    VectorMetadata metadata(0, 1001, "Key1", "Value1");
+    VectorMetadata metadata(0, versionId, 1001, "Key1", "Value1");
     metadataManager.addVectorMetadata(metadata);
 
     auto metadataList = metadataManager.getAllVectorMetadata();
@@ -138,8 +138,8 @@ TEST_F(VectorMetadataManagerTest, DeleteVectorMetadata) {
     VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
 
     // Add two metadata entries
-    VectorMetadata metadata1(0, 1001, "Key1", "Value1");
-    VectorMetadata metadata2(0, 1001, "Key2", "Value2");
+    VectorMetadata metadata1(0, versionId, 1001, "Key1", "Value1");
+    VectorMetadata metadata2(0, versionId, 1001, "Key2", "Value2");
     metadataManager.addVectorMetadata(metadata1);
     metadataManager.addVectorMetadata(metadata2);
 
@@ -177,9 +177,9 @@ TEST_F(VectorMetadataManagerTest, FilterVectors) {
     vectorManager.addVector(vector3);
 
     // Adding metadata entries for different vector IDs
-    VectorMetadata metadata1(0, vector1.id, "status", "active");
-    VectorMetadata metadata2(0, vector2.id, "status", "inactive");
-    VectorMetadata metadata3(0, vector3.id, "status", "active");
+    VectorMetadata metadata1(0, versionId, vector1.id, "status", "active");
+    VectorMetadata metadata2(0, versionId, vector2.id, "status", "inactive");
+    VectorMetadata metadata3(0, versionId, vector3.id, "status", "active");
     metadataManager.addVectorMetadata(metadata1);
     metadataManager.addVectorMetadata(metadata2);
     metadataManager.addVectorMetadata(metadata3);
@@ -207,4 +207,42 @@ TEST_F(VectorMetadataManagerTest, FilterVectors) {
     // Check if the result contains only inactive vectors
     ASSERT_EQ(filteredVectors.size(), 1);
     EXPECT_EQ(filteredVectors[0].second, 1002);
+}
+
+// Test for querying vectors with filter, start, and limit
+TEST_F(VectorMetadataManagerTest, QueryVectors) {
+    VectorMetadataManager& metadataManager = VectorMetadataManager::getInstance();
+    VectorManager& vectorManager = VectorManager::getInstance();
+    
+    // Setup versionId for vectors
+    int versionId = 1; // Assume a version ID for the test, adjust as needed.
+
+    // Adding vectors to the Vector table to ensure vector data exists
+    Vector vector1(1, versionId, 1, VectorValueType::Dense, {}, false);
+    Vector vector2(2, versionId, 2, VectorValueType::Dense, {}, false);
+    Vector vector3(3, versionId, 3, VectorValueType::Dense, {}, false);
+    
+    vectorManager.addVector(vector1);
+    vectorManager.addVector(vector2);
+    vectorManager.addVector(vector3);
+
+    // Adding metadata entries for different vector IDs
+    VectorMetadata metadata1(0, versionId, vector1.id, "status", "active");
+    VectorMetadata metadata2(0, versionId, vector2.id, "status", "inactive");
+    VectorMetadata metadata3(0, versionId, vector3.id, "status", "active");
+    metadataManager.addVectorMetadata(metadata1);
+    metadataManager.addVectorMetadata(metadata2);
+    metadataManager.addVectorMetadata(metadata3);
+
+    // Querying vectors with filter "status == 'active'", start = 0, limit = 2
+    std::string filter = "status == 'active'";
+    int start = 0;
+    int limit = 2;
+    VectorMetadataResult result = metadataManager.queryVectors(versionId, filter, start, limit);
+
+    // Check if the result contains the correct total count and vectors
+    EXPECT_EQ(result.totalCount, 2);
+    ASSERT_EQ(result.vectorUniqueIds.size(), 2);
+    EXPECT_EQ(result.vectorUniqueIds[0], 1);
+    EXPECT_EQ(result.vectorUniqueIds[1], 3);
 }

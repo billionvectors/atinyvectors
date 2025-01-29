@@ -99,7 +99,7 @@ void VectorServiceManager::upsert(const std::string& spaceName, int versionUniqu
             if (vectorJson.contains("metadata")) {
                 VectorMetadataManager::getInstance().deleteVectorMetadataByVectorId(addedVectorId);
                 for (const auto& [key, value] : vectorJson["metadata"].items()) {
-                    VectorMetadata metadata(0, addedVectorId, key, value.get<std::string>());
+                    VectorMetadata metadata(0, versionId, addedVectorId, key, value.get<std::string>());
                     VectorMetadataManager::getInstance().addVectorMetadata(metadata);
                 }
             }
@@ -312,7 +312,7 @@ void VectorServiceManager::processVectors(const json& parsedJson, int versionId,
             VectorMetadataManager::getInstance().deleteVectorMetadataByVectorId(addedVectorId);
             
             for (const auto& [key, value] : vectorJson["metadata"].items()) {
-                VectorMetadata metadata(0, addedVectorId, key, value.get<std::string>());
+                VectorMetadata metadata(0, versionId, addedVectorId, key, value.get<std::string>());
                 VectorMetadataManager::getInstance().addVectorMetadata(metadata);
             }
         }
@@ -328,13 +328,23 @@ void VectorServiceManager::processVectors(const json& parsedJson, int versionId,
     }
 }
 
-json VectorServiceManager::getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit) {
+json VectorServiceManager::getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit, const std::string& filter) {
     json result;
 
     IdCache& idCache = IdCache::getInstance();
     int versionId = idCache.getVersionId(spaceName, versionUniqueId);
-    auto vectors = VectorManager::getInstance().getVectorsByVersionId(versionId, start, limit);
     json vectorsJson = json::array();
+
+    spdlog::debug("VectorServiceManager::getVectorsByVersionId called with parameters: spaceName={}, versionUniqueId={}, start={}, limit={}, filter={}", 
+                  spaceName, versionUniqueId, start, limit, filter);
+
+    std::vector<Vector> vectors;
+    if (filter.empty()) {
+        vectors = VectorManager::getInstance().getVectorsByVersionId(versionId, start, limit);
+    } else {
+        auto filteredVectorIds = VectorMetadataManager::getInstance().queryVectors(versionId, filter, start, limit).vectorUniqueIds;
+        vectors = VectorManager::getInstance().getVectorsByVectorIds(filteredVectorIds);
+    }
 
     for (const auto& vector : vectors) {
         json vectorJson;

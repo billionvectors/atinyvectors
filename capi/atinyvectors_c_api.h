@@ -42,7 +42,7 @@ void atv_version_service_delete_by_version_id(VersionServiceManager* manager, co
 VectorServiceManager* atv_vector_service_manager_new();
 void atv_vector_service_manager_free(VectorServiceManager* manager);
 void atv_vector_service_upsert(VectorServiceManager* manager, const char* spaceName, int versionId, const char* jsonStr);
-char* atv_vector_service_get_vectors_by_version_id(VectorServiceManager* manager, const char* spaceName, int versionId, int start, int limit);
+char* atv_vector_service_get_vectors_by_version_id(VectorServiceManager* manager, const char* spaceName, int versionId, int start, int limit, const char* filter);
 
 // C API for SearchServiceManager
 SearchServiceManager* atv_search_service_manager_new();

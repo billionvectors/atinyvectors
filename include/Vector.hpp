@@ -84,6 +84,8 @@ public:
     std::vector<Vector> getAllVectors();
     std::vector<Vector> getVectorsByVersionId(int versionId, int start, int limit);
 
+    std::vector<Vector> getVectorsByVectorIds(const std::vector<int>& vectorIds);
+
     int countByVersionId(int versionId);
     
     Vector getVectorById(unsigned long long id);

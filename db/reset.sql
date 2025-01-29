@@ -118,5 +118,9 @@ CREATE TABLE VectorMetadata (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     vectorId INTEGER NOT NULL,
     key TEXT NOT NULL,
-    value TEXT
+    value TEXT,
+    versionId INTEGER NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_vectormetadata_versionId_key_value ON VectorMetadata(versionId, key, value);
+CREATE INDEX IF NOT EXISTS idx_vectormetadata_vectorId_key_value ON VectorMetadata(vectorId, key, value);

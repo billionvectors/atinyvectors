@@ -255,3 +255,62 @@ TEST_F(VectorServiceManagerTest, UpsertVectorsWithDoc) {
         }
     }
 }
+
+TEST_F(VectorServiceManagerTest, GetVectorsByVersionIdWithFilter) {
+    // Set up necessary default Space and Version
+    Space defaultSpace(0, "default_space", "Default Space Description", 0, 0);
+    int spaceId = SpaceManager::getInstance().addSpace(defaultSpace);
+
+    Version defaultVersion(0, spaceId, 0, "Default Version", "Automatically created default version", "v1", 0, 0, true);
+    int versionId = VersionManager::getInstance().addVersion(defaultVersion);
+
+    // Create a default VectorIndex if none exists
+    auto vectorIndices = VectorIndexManager::getInstance().getVectorIndicesByVersionId(versionId);
+    int defaultIndexId = 0;
+    if (vectorIndices.empty()) {
+        HnswConfig hnswConfig(16, 200);  // Example HNSW config: M = 16, EfConstruct = 200
+        QuantizationConfig quantizationConfig;  // Default empty quantization config
+        
+        VectorIndex defaultIndex(0, versionId, VectorValueType::Dense, "Default Index", MetricType::L2, 128,
+                                 hnswConfig.toJson().dump(), quantizationConfig.toJson().dump(), 0, 0, true);
+        defaultIndexId = VectorIndexManager::getInstance().addVectorIndex(defaultIndex);
+    } else {
+        defaultIndexId = vectorIndices[0].id;
+    }
+
+    VectorServiceManager manager;
+
+    // Prepare JSON with vectors
+    std::string updateJson = R"({
+        "vectors": [
+            {
+                "id": 1,
+                "data": [0.25, 0.45, 0.75, 0.85],
+                "metadata": {"status": "active"}
+            },
+            {
+                "id": 2,
+                "data": [0.20, 0.62, 0.77, 0.75],
+                "metadata": {"status": "inactive"}
+            }
+        ]
+    })";
+
+    // Perform upsert operation
+    manager.upsert("default_space", 0, updateJson);
+
+    // Fetch and verify vectors with filter
+    std::string filter = "status == 'active'";
+    json fetchedVectors = manager.getVectorsByVersionId("default_space", 0, 0, 10, filter);
+    ASSERT_TRUE(fetchedVectors.contains("vectors"));
+    ASSERT_EQ(fetchedVectors["vectors"].size(), 1);
+    EXPECT_EQ(fetchedVectors["vectors"][0]["id"], 1);
+    EXPECT_EQ(fetchedVectors["vectors"][0]["metadata"]["status"], "active");
+
+    filter = "status == 'inactive'";
+    fetchedVectors = manager.getVectorsByVersionId("default_space", 0, 0, 10, filter);
+    ASSERT_TRUE(fetchedVectors.contains("vectors"));
+    ASSERT_EQ(fetchedVectors["vectors"].size(), 1);
+    EXPECT_EQ(fetchedVectors["vectors"][0]["id"], 2);
+    EXPECT_EQ(fetchedVectors["vectors"][0]["metadata"]["status"], "inactive");
+}

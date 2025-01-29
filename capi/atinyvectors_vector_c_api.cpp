@@ -24,10 +24,10 @@ void atv_vector_service_upsert(VectorServiceManager* manager, const char* spaceN
     }
 }
 
-char* atv_vector_service_get_vectors_by_version_id(VectorServiceManager* manager, const char* spaceName, int versionId, int start, int limit) {
+char* atv_vector_service_get_vectors_by_version_id(VectorServiceManager* manager, const char* spaceName, int versionId, int start, int limit, const char* filter) {
     try {
         auto* cppManager = reinterpret_cast<atinyvectors::service::VectorServiceManager*>(manager);
-        nlohmann::json result = cppManager->getVectorsByVersionId(spaceName, versionId, start, limit);
+        nlohmann::json result = cppManager->getVectorsByVersionId(spaceName, versionId, start, limit, filter);
         
         // Allocate memory and return JSON string
         std::string jsonString = result.dump();

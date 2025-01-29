@@ -20,7 +20,12 @@ DatabaseManager::DatabaseManager(const std::string& dbFileName, const std::strin
 DatabaseManager& DatabaseManager::getInstance(const std::string& dbFileName, const std::string& migrationDir) {
     std::lock_guard<std::mutex> lock(instanceMutex);
     if (!instance) {
-        instance.reset(new DatabaseManager(dbFileName, migrationDir));
+        if (dbFileName != ":memory:") {
+            std::string fullDbPath = Config::getInstance().getDataPath() + "/" + dbFileName;
+            instance.reset(new DatabaseManager(fullDbPath, migrationDir));
+        } else {
+            instance.reset(new DatabaseManager(dbFileName, migrationDir));
+        }
     } else if (migrationDir != instance->migrationPath) {
         instance->setMigrationPath(migrationDir);
     }
@@ -97,7 +102,12 @@ void DatabaseManager::migrate() {
                 currentDbVersion = 0;
             }
         } else {
-            currentDbVersion = getDatabaseVersion();
+            try {
+                currentDbVersion = getDatabaseVersion();
+            } catch (const std::exception&) {
+                resetRequired = true;
+                currentDbVersion = 0;
+            }
         }
 
         // If reset was performed, skip migrations and only verify the latest version

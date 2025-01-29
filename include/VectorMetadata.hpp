@@ -12,15 +12,22 @@ namespace atinyvectors {
 class VectorMetadata {
 public:
     long id;
+    long versionId;
     long vectorId;
+
     std::string key;
     std::string value;
 
     VectorMetadata()
-        : id(0), vectorId(0), key(""), value("") {}
+        : id(0), versionId(0), vectorId(0), key(""), value("") {}
 
-    VectorMetadata(long id, long vectorId, const std::string& key, const std::string& value)
-        : id(id), vectorId(vectorId), key(key), value(value) {}
+    VectorMetadata(long id, long versionId, long vectorId, const std::string& key, const std::string& value)
+        : id(id), versionId(versionId), vectorId(vectorId), key(key), value(value) {}
+};
+
+struct VectorMetadataResult {
+    int totalCount;
+    std::vector<int> vectorUniqueIds;
 };
 
 class VectorMetadataManager {
@@ -47,6 +54,10 @@ public:
     std::vector<std::pair<float, int>> filterVectors(
         const std::vector<std::pair<float, int>>& inputVectors,
         const std::string& filter);
+
+    VectorMetadataResult queryVectors(
+        long versionId, const std::string& filter, int start, int limit);
+
 };
 
 } // namespace atinyvectors

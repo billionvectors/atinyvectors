@@ -36,7 +36,6 @@ public:
     void migrate();
     int getDatabaseVersion();
 
-    // Setter for migration directory
     void setMigrationPath(const std::string& path) { migrationPath = path; }
     const std::string& getMigrationPath() const { return migrationPath; }
 };

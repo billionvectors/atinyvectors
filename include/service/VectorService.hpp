@@ -15,7 +15,7 @@ namespace service {
 class VectorServiceManager {
 public:
     void upsert(const std::string& spaceName, int versionUniqueId, const std::string& jsonStr); 
-    json getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit);
+    json getVectorsByVersionId(const std::string& spaceName, int versionUniqueId, int start, int limit, const std::string& filter = "");
 
 private:
     void processSimpleVectors(const json& vectorsJson, int versionId, int defaultIndexId);
