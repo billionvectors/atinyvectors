@@ -11,7 +11,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #ifndef ATINYVECTORS_PROJECT_VERSION
-#define ATINYVECTORS_PROJECT_VERSION "0.2.0"
+#define ATINYVECTORS_PROJECT_VERSION "0.2.3"
 #endif
 
 namespace atinyvectors {
