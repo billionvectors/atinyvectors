@@ -63,9 +63,9 @@ nlohmann::json RerankServiceManager::rerank(const std::string& spaceName, int ve
         json finalResults = json::array();
         for (const auto& [vectorUniqueId, distance, bm25Score] : combinedResults) {
             finalResults.push_back({
-                {"vectorUniqueId", vectorUniqueId},
+                {"id", vectorUniqueId},
                 {"distance", distance},
-                {"bm25Score", bm25Score}
+                {"bm25_score", bm25Score}
             });
         }
 

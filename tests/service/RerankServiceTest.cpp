@@ -92,20 +92,20 @@ TEST_F(RerankServiceTest, RerankWithBM25) {
     // Log results for debugging
     spdlog::info("Rerank results size: {}", rerankResults.size());
     for (const auto& result : rerankResults) {
-        spdlog::info("VectorUniqueId: {}, Distance: {}, BM25Score: {}", result["vectorUniqueId"], result["distance"], result["bm25Score"]);
+        spdlog::info("VectorUniqueId: {}, Distance: {}, BM25Score: {}", result["id"], result["distance"], result["bm25_score"]);
     }
 
     // Validate that two results are returned
     ASSERT_EQ(rerankResults.size(), 2);
 
     // Check that results are sorted by BM25 score descending, and distance ascending
-    double bm25Score1 = rerankResults[0]["bm25Score"];
-    double bm25Score2 = rerankResults[1]["bm25Score"];
+    double bm25Score1 = rerankResults[0]["bm25_score"];
+    double bm25Score2 = rerankResults[1]["bm25_score"];
     EXPECT_GE(bm25Score1, bm25Score2);
 
     // Validate vector unique IDs
-    int vectorUniqueId1 = rerankResults[0]["vectorUniqueId"];
-    int vectorUniqueId2 = rerankResults[1]["vectorUniqueId"];
+    int vectorUniqueId1 = rerankResults[0]["id"];
+    int vectorUniqueId2 = rerankResults[1]["id"];
     EXPECT_EQ(vectorUniqueId1, 1);
     EXPECT_EQ(vectorUniqueId2, 2);
 

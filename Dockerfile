@@ -1,5 +1,5 @@
-# Use an official Ubuntu 20.04 image
-FROM ubuntu:20.04
+# Use an official Ubuntu 22.04 image
+FROM ubuntu:22.04
 
 # Set environment variables to prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
